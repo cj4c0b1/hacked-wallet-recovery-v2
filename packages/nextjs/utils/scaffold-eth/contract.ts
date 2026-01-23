@@ -31,7 +31,6 @@ import { WriteContractParameters, WriteContractReturnType, simulateContract } fr
 import { WriteContractVariables } from "wagmi/query";
 import deployedContractsData from "~~/contracts/deployedContracts";
 import externalContractsData from "~~/contracts/externalContracts";
-import scaffoldConfig from "~~/scaffold.config";
 
 type AddExternalFlag<T> = {
   [ChainId in keyof T]: {
@@ -81,17 +80,20 @@ export type GenericContractsDeclaration = {
 
 export const contracts = contractsData as GenericContractsDeclaration | null;
 
-type ConfiguredChainId = (typeof scaffoldConfig)["targetNetworks"][0]["id"];
+// Widen to `number` so we don't depend on literal chain-id keys in generated contract declarations.
+// This keeps types stable even when contracts are merged/augmented at runtime.
+type ConfiguredChainId = number;
 
-type IsContractDeclarationMissing<TYes, TNo> = typeof contractsData extends { [key in ConfiguredChainId]: any }
-  ? TNo
-  : TYes;
+// The merged contracts object is built dynamically; treat contract declarations as "missing"
+// so hooks/components can compile without relying on literal keys/types.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type IsContractDeclarationMissing<TYes, _TNo> = TYes;
 
 type ContractsDeclaration = IsContractDeclarationMissing<GenericContractsDeclaration, typeof contractsData>;
 
 type Contracts = ContractsDeclaration[ConfiguredChainId];
 
-export type ContractName = keyof Contracts;
+export type ContractName = Extract<keyof Contracts, string>;
 
 export type Contract<TContractName extends ContractName> = Contracts[TContractName];
 

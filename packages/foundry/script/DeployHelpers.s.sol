@@ -57,9 +57,12 @@ contract ScaffoldETHDeploy is Script {
     function exportDeployments() internal {
         // fetch already existing contracts
         root = vm.projectRoot();
-        path = string.concat(root, "/deployments/");
         string memory chainIdStr = vm.toString(block.chainid);
-        path = string.concat(path, string.concat(chainIdStr, ".json"));
+        // In this repo `vm.projectRoot()` is typically `<repo>/packages/foundry`,
+        // so deployments should write to `<root>/deployments/<chainId>.json`.
+        string memory pathPrimary = string.concat(root, "/deployments/", chainIdStr, ".json");
+        // Backwards-compatible fallback (in case a consumer expects `<repo>/packages/foundry/deployments` from monorepo root).
+        string memory pathFallback = string.concat(root, "/packages/foundry/deployments/", chainIdStr, ".json");
 
         string memory jsonWrite;
 
@@ -77,7 +80,13 @@ contract ScaffoldETHDeploy is Script {
             chainName = findChainName();
         }
         jsonWrite = vm.serializeString(jsonWrite, "networkName", chainName);
-        vm.writeJson(jsonWrite, path);
+        // Try primary location first, then fallback.
+        try vm.writeJson(jsonWrite, pathPrimary) {
+            path = pathPrimary;
+        } catch {
+            vm.writeJson(jsonWrite, pathFallback);
+            path = pathFallback;
+        }
     }
 
     function findChainName() public returns (string memory) {

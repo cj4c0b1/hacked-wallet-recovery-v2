@@ -47,6 +47,7 @@ export const TransactionsTable = ({ blocks, transactionReceipts }: TransactionsT
                     <td className="w-2/12 md:py-4">
                       <Address
                         address={tx.from}
+                        chain={targetNetwork}
                         size="sm"
                         onlyEnsOrAddress
                         blockExplorerAddressLink={
@@ -59,6 +60,7 @@ export const TransactionsTable = ({ blocks, transactionReceipts }: TransactionsT
                         tx.to && (
                           <Address
                             address={tx.to}
+                            chain={targetNetwork}
                             size="sm"
                             onlyEnsOrAddress
                             blockExplorerAddressLink={
@@ -70,6 +72,7 @@ export const TransactionsTable = ({ blocks, transactionReceipts }: TransactionsT
                         <div className="relative">
                           <Address
                             address={receipt.contractAddress}
+                            chain={targetNetwork}
                             size="sm"
                             onlyEnsOrAddress
                             blockExplorerAddressLink={

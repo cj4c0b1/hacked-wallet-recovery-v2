@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Abi, AbiEvent, ExtractAbiEventNames } from "abitype";
 import { BlockNumber, GetLogsParameters } from "viem";
@@ -125,14 +125,19 @@ export const useScaffoldEventHistory = <
 
   const isContractAddressAndClientReady = Boolean(deployedContractData?.address) && Boolean(publicClient);
 
+  const deployedOnBlockValue = useMemo(() => {
+    if (!deployedContractData) return 0;
+    const value = (deployedContractData as any).deployedOnBlock;
+    if (typeof value === "bigint") return value;
+    if (typeof value === "number") return value;
+    if (typeof value === "string") return Number(value) || 0;
+    return 0;
+  }, [deployedContractData]);
+
   const fromBlockValue =
     fromBlock !== undefined
       ? fromBlock
-      : BigInt(
-          deployedContractData && "deployedOnBlock" in deployedContractData
-            ? deployedContractData.deployedOnBlock || 0
-            : 0,
-        );
+      : BigInt(deployedContractData && "deployedOnBlock" in deployedContractData ? deployedOnBlockValue || 0 : 0);
 
   const query = useInfiniteQuery({
     queryKey: [
@@ -272,7 +277,7 @@ export const useScaffoldEventHistory = <
 
   // remove duplicates
   const seenEvents = new Set<string>();
-  const combinedEvents = allEvents.filter(event => {
+  const combinedEvents = allEvents.filter((event: any) => {
     const eventKey = `${event?.transactionHash}-${event?.logIndex}-${event?.blockHash}`;
     if (seenEvents.has(eventKey)) {
       return false;

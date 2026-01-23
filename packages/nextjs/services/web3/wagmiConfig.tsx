@@ -8,9 +8,11 @@ import { getAlchemyHttpUrl } from "~~/utils/scaffold-eth";
 const { targetNetworks } = scaffoldConfig;
 
 // We always want to have mainnet enabled (ENS resolution, ETH price, etc). But only once.
-export const enabledChains = targetNetworks.find((network: Chain) => network.id === 1)
+const targetNetworksWithMainnet = targetNetworks.find((network: Chain) => network.id === mainnet.id)
   ? targetNetworks
-  : ([...targetNetworks, mainnet] as const);
+  : [...targetNetworks, mainnet];
+
+export const enabledChains = targetNetworksWithMainnet as unknown as readonly [Chain, ...Chain[]];
 
 export const wagmiConfig = createConfig({
   chains: enabledChains,

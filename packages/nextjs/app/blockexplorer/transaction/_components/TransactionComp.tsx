@@ -66,6 +66,7 @@ const TransactionComp = ({ txHash }: { txHash: Hash }) => {
                 <td>
                   <Address
                     address={transaction.from}
+                    chain={targetNetwork}
                     format="long"
                     onlyEnsOrAddress
                     blockExplorerAddressLink={
@@ -83,6 +84,7 @@ const TransactionComp = ({ txHash }: { txHash: Hash }) => {
                     transaction.to && (
                       <Address
                         address={transaction.to}
+                        chain={targetNetwork}
                         format="long"
                         onlyEnsOrAddress
                         blockExplorerAddressLink={
@@ -95,6 +97,7 @@ const TransactionComp = ({ txHash }: { txHash: Hash }) => {
                       Contract Creation:
                       <Address
                         address={receipt.contractAddress}
+                        chain={targetNetwork}
                         format="long"
                         onlyEnsOrAddress
                         blockExplorerAddressLink={

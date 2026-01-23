@@ -27,6 +27,7 @@ export const AddressComponent = ({
               <div className="flex flex-col gap-1">
                 <Address
                   address={address}
+                  chain={targetNetwork}
                   format="long"
                   onlyEnsOrAddress
                   blockExplorerAddressLink={

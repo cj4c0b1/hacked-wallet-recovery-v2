@@ -37,6 +37,7 @@ export const Faucet = () => {
         const accounts = await localWalletClient.getAddresses();
         setFaucetAddress(accounts[FAUCET_ACCOUNT_INDEX]);
       } catch (error) {
+        console.error("⚡️ ~ file: Faucet.tsx:getFaucetAddress ~ error", error);
         notification.error(
           <>
             <p className="font-bold mt-0 mb-1">Cannot connect to local provider</p>
@@ -49,7 +50,7 @@ export const Faucet = () => {
             </p>
           </>,
         );
-        console.error("⚡️ ~ file: Faucet.tsx:getFaucetAddress ~ error", error);
+        // Avoid logging noisy errors in the UI; the notification above is enough.
       }
     };
     getFaucetAddress();
@@ -101,6 +102,7 @@ export const Faucet = () => {
                 <span className="text-sm font-bold">From:</span>
                 <Address
                   address={faucetAddress}
+                  chain={targetNetwork}
                   onlyEnsOrAddress
                   blockExplorerAddressLink={
                     targetNetwork.id === hardhat.id ? `/blockexplorer/address/${faucetAddress}` : undefined

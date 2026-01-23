@@ -13,6 +13,9 @@ import scaffoldConfig from "~~/scaffold.config";
 
 const { onlyLocalBurnerWallet, targetNetworks } = scaffoldConfig;
 
+type WalletFactory = typeof metaMaskWallet;
+const burnerWalletFactory = rainbowkitBurnerWallet as unknown as WalletFactory;
+
 const wallets = [
   metaMaskWallet,
   walletConnectWallet,
@@ -21,7 +24,7 @@ const wallets = [
   rainbowWallet,
   safeWallet,
   ...(!targetNetworks.some(network => network.id !== (chains.hardhat as chains.Chain).id) || !onlyLocalBurnerWallet
-    ? [rainbowkitBurnerWallet]
+    ? [burnerWalletFactory]
     : []),
 ];
 

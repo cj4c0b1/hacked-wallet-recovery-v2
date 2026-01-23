@@ -18,53 +18,58 @@
 @plugin "daisyui/theme" {
   name: "light";
 
-  --color-primary: #93bbfb;
-  --color-primary-content: #212638;
-  --color-secondary: #dae8ff;
-  --color-secondary-content: #212638;
-  --color-accent: #93bbfb;
-  --color-accent-content: #212638;
-  --color-neutral: #212638;
-  --color-neutral-content: #ffffff;
-  --color-base-100: #ffffff;
-  --color-base-200: #f4f8ff;
-  --color-base-300: #dae8ff;
-  --color-base-content: #212638;
-  --color-info: #93bbfb;
-  --color-success: #34eeb6;
-  --color-warning: #ffcf72;
-  --color-error: #ff8863;
+  /* Cool modern palette: blue family (no purple), subtle tinted background */
+  --color-primary: #2563eb; /* cobalt: buttons */
+  --color-primary-content: #f8fafc;
+  --color-secondary: #1d4ed8; /* deeper cobalt: secondary buttons/chips */
+  --color-secondary-content: #f8fafc;
+  --color-accent: #2563eb; /* keep links/accents aligned with primary */
+  --color-accent-content: #f8fafc;
+  --color-neutral: #0f172a; /* slate-900 */
+  --color-neutral-content: #f8fafc;
+  --color-base-100: #f8fafc; /* card */
+  --color-base-200: #eff6ff; /* subtle blue-tinted background */
+  --color-base-300: #dbeafe; /* blue-100 */
+  --color-base-content: #0f172a;
+  --color-info: #2563eb;
+  --color-success: #2563eb; /* keep success non-green */
+  --color-warning: #eab308; /* yellow */
+  --color-error: #dc2626; /* red */
 
-  --radius-field: 9999rem;
-  --radius-box: 1rem;
+  /* Boxier corners (less pill-like) */
+  --radius-field: 0.55rem;
+  --radius-box: 0.75rem;
   --tt-tailw: 6px;
+  --tt-bg: var(--color-base-300);
 }
 
 @plugin "daisyui/theme" {
   name: "dark";
 
-  --color-primary: #212638;
-  --color-primary-content: #f9fbff;
-  --color-secondary: #323f61;
-  --color-secondary-content: #f9fbff;
-  --color-accent: #4969a6;
-  --color-accent-content: #f9fbff;
-  --color-neutral: #f9fbff;
-  --color-neutral-content: #385183;
-  --color-base-100: #385183;
-  --color-base-200: #2a3655;
-  --color-base-300: #212638;
-  --color-base-content: #f9fbff;
-  --color-info: #385183;
-  --color-success: #34eeb6;
-  --color-warning: #ffcf72;
-  --color-error: #ff8863;
+  /* Dark variant: midnight + blue family (no purple), subtle tinted background */
+  --color-primary: #3b82f6; /* blue-500 */
+  --color-primary-content: #f8fafc;
+  --color-secondary: #1d4ed8; /* blue-700 */
+  --color-secondary-content: #f8fafc;
+  --color-accent: #3b82f6; /* aligned with primary */
+  --color-accent-content: #f8fafc;
+  --color-neutral: #f8fafc;
+  --color-neutral-content: #0b1220;
+  --color-base-100: #0b1220; /* card */
+  --color-base-200: #0a1020; /* subtle blue-tinted background */
+  --color-base-300: #070c16;
+  --color-base-content: #f8fafc;
+  --color-info: #3b82f6;
+  --color-success: #3b82f6; /* keep success non-green */
+  --color-warning: #eab308;
+  --color-error: #ef4444;
 
-  --radius-field: 9999rem;
-  --radius-box: 1rem;
+  /* Boxier corners (less pill-like) */
+  --radius-field: 0.55rem;
+  --radius-box: 0.75rem;
 
   --tt-tailw: 6px;
-  --tt-bg: var(--color-primary);
+  --tt-bg: var(--color-base-300);
 }
 
 /*
@@ -107,17 +112,71 @@
 }
 
 .btn {
-  @apply shadow-md;
+  @apply shadow-sm;
 }
 
 .btn.btn-ghost {
   @apply shadow-none;
 }
 
+/* Make buttons visually boxier (without affecting icon circle/square variants) */
+.btn:not(.btn-circle):not(.btn-square) {
+  border-radius: 0.65rem !important;
+}
+
 .link {
   text-underline-offset: 2px;
+  color: var(--color-accent);
 }
 
 .link:hover {
   opacity: 80%;
+}
+
+/* DaisyUI tooltip: make the bubble less rounded (closer to square) */
+.tooltip:before {
+  border-radius: 0.35rem !important;
+}
+
+/* Keep the tooltip tail slightly less rounded too */
+.tooltip:after {
+  border-radius: 0.2rem !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Scaffold-UI inputs (AddressInput/EtherInput) - align with DaisyUI styling   */
+/* -------------------------------------------------------------------------- */
+
+/* BaseInput wrapper uses Tailwind classes + SUI token classes. Override those tokens
+   so it visually matches our app's DaisyUI inputs (border/base colors + less pill-like). */
+.border-sui-input-border {
+  /* DaisyUI `input-bordered` looks closer to base-content at low opacity than base-300,
+     especially in dark mode. */
+  border-color: color-mix(in oklab, var(--color-base-content) 18%, transparent) !important;
+}
+
+.border-sui-input-border-disabled\! {
+  border-color: color-mix(in oklab, var(--color-base-content) 12%, transparent) !important;
+}
+
+.border-sui-input-border-error\! {
+  border-color: var(--color-error) !important;
+}
+
+.bg-sui-input-background {
+  background-color: var(--color-base-100) !important;
+}
+
+.bg-sui-input-border {
+  background-color: var(--color-base-200) !important;
+}
+
+.text-sui-input-text {
+  color: var(--color-base-content) !important;
+}
+
+/* Reduce the pill look + thick border on BaseInput containers */
+.border-sui-input-border.bg-sui-input-background {
+  border-width: 1px !important;
+  border-radius: var(--radius-field) !important;
 }
