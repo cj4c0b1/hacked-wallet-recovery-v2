@@ -933,10 +933,6 @@ export function SelectAssetsStep(props: {
             <div className="space-y-3">
               {walletPositionsView ? (
                 <>
-                  <div className="text-xs text-neutral">
-                    Wallet balances are shown using <span className="font-semibold">onchain</span> reads (Zerion data{" "}
-                    can be stale/rounded).
-                  </div>
                   <PositionsOverview
                     positionsView={walletPositionsView}
                     selectable

@@ -1,7 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTheme } from "next-themes";
 import { hardhat } from "viem/chains";
 import { StepTrack } from "~~/components/recovery/StepTrack";
 import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
@@ -9,10 +12,18 @@ import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { useRecoveryWizardStore } from "~~/services/store/recoveryWizard";
 
 export function TopRightConnect() {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const { targetNetwork } = useTargetNetwork();
   const isLocalNetwork = targetNetwork.id === hardhat.id;
   const pathname = usePathname();
   const step = useRecoveryWizardStore(s => s.step);
+  const logoSrc = mounted && resolvedTheme === "light" ? "/hwr-dark.svg" : "/hwr.svg";
 
   const showTrack = useMemo(() => {
     // Only show the track for the recovery flow on the homepage.
@@ -22,6 +33,16 @@ export function TopRightConnect() {
 
   return (
     <div className="sticky top-0 z-20">
+      {/* Fixed logo on the far left (desktop) */}
+      <div className="md:fixed md:left-4 md:top-3 z-30 hidden md:flex items-center">
+        <Link href="/" className="flex items-center gap-2">
+          <div className="relative w-9 h-9 rounded-xl bg-base-200 shadow-sm p-1">
+            <Image alt="Hacked Wallet Recovery logo" fill src={logoSrc} />
+          </div>
+          <span className="font-bold text-base lg:text-lg leading-tight">Hacked Wallet Recovery</span>
+        </Link>
+      </div>
+
       <div className="w-full flex justify-center px-5 py-3">
         <div className="w-full max-w-5xl">
           <div className="pt-1">{showTrack ? <StepTrack step={step} /> : null}</div>
@@ -35,7 +56,12 @@ export function TopRightConnect() {
       </div>
 
       {/* Non-fixed wallet/connect UI for small screens */}
-      <div className="flex md:hidden justify-end px-5 pb-3">
+      <div className="flex md:hidden items-center justify-between px-5 pb-3 gap-3">
+        <Link href="/" className="flex items-center gap-2 shrink-0">
+          <div className="relative w-8 h-8 rounded-xl bg-base-200 shadow-sm p-1">
+            <Image alt="Hacked Wallet Recovery logo" fill src={logoSrc} />
+          </div>
+        </Link>
         <div className="flex items-center gap-2">
           <RainbowKitCustomConnectButton />
           {isLocalNetwork && <FaucetButton />}

@@ -3,56 +3,47 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export function IntroStep(props: { onNext: () => void }) {
-  const [typed, setTyped] = useState("");
-  const [isTyping, setIsTyping] = useState(true);
-
-  const typeMsPerWord = 80;
-
-  const text = useMemo(() => {
-    return (
-      "Sorry to hear that you have been hacked.\n\n" +
-      "This tool can help recover assets that are stuck in your wallet."
-    );
-  }, []);
-
-  const typingTimer = useRef<number | null>(null);
+  const [revealCount, setRevealCount] = useState(0);
+  const revealTimers = useRef<number[]>([]);
 
   const clearTimers = () => {
-    if (typingTimer.current) window.clearInterval(typingTimer.current);
-    typingTimer.current = null;
+    revealTimers.current.forEach(id => window.clearTimeout(id));
+    revealTimers.current = [];
   };
+
+  const lines = useMemo(() => {
+    return [
+      "Sorry to hear that you have been hacked.",
+      "This tool can help recover assets that are stuck in your wallet.",
+    ];
+  }, []);
 
   useEffect(() => {
     clearTimers();
-    setIsTyping(true);
-    setTyped("");
+    setRevealCount(0);
 
-    const tokens = text.match(/\S+\s*/g) ?? [];
-    let i = 0;
-    typingTimer.current = window.setInterval(() => {
-      i += 1;
-      setTyped(tokens.slice(0, i).join(""));
-      if (i >= tokens.length) {
-        if (typingTimer.current) window.clearInterval(typingTimer.current);
-        typingTimer.current = null;
-        setIsTyping(false);
-      }
-    }, typeMsPerWord);
+    // Fade in each line with a 500ms stagger, then show CTA.
+    revealTimers.current = [
+      window.setTimeout(() => setRevealCount(1), 500),
+      window.setTimeout(() => setRevealCount(2), 1500),
+      window.setTimeout(() => setRevealCount(3), 2500),
+    ];
 
     return () => clearTimers();
-  }, [text]);
+  }, []);
+
+  const isRevealing = revealCount < 3;
 
   const advance = useCallback(() => {
-    // If still typing, first press completes instantly.
-    if (isTyping) {
+    // If still revealing, first press completes instantly.
+    if (isRevealing) {
       clearTimers();
-      setTyped(text);
-      setIsTyping(false);
+      setRevealCount(3);
       return;
     }
 
     props.onNext();
-  }, [isTyping, props, text]);
+  }, [isRevealing, props]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -64,14 +55,32 @@ export function IntroStep(props: { onNext: () => void }) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [advance]);
 
-  const showCta = !isTyping;
+  const showCta = revealCount >= 3;
   const ctaLabel = "Ready?";
 
   return (
     <div className="bg-base-100 rounded-3xl p-10 md:p-14 border border-base-300 flex flex-col max-h-[80vh] min-h-[320px]">
       <div className="flex-1 flex items-center">
         <div className="max-w-3xl mx-auto w-full text-left">
-          <h1 className="text-3xl md:text-4xl font-bold m-0 leading-tight whitespace-pre-wrap">{typed}</h1>
+          <h1
+            className={[
+              "text-3xl md:text-4xl font-bold m-0 leading-tight",
+              "transition-opacity duration-500 ease-out",
+              revealCount >= 1 ? "opacity-100" : "opacity-0",
+            ].join(" ")}
+          >
+            {lines[0]}
+          </h1>
+
+          <p
+            className={[
+              "mt-6 text-xl md:text-2xl leading-relaxed text-base-content/80",
+              "transition-opacity duration-500 ease-out",
+              revealCount >= 2 ? "opacity-100" : "opacity-0",
+            ].join(" ")}
+          >
+            {lines[1]}
+          </p>
         </div>
       </div>
 

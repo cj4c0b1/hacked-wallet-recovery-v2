@@ -42,8 +42,8 @@ export function RecoverWizard() {
   );
 
   return (
-    <div className="flex items-center flex-col grow">
-      <div className={`w-full max-w-5xl px-5 space-y-6 ${step === "intro" ? "pt-10" : "pt-6"}`}>
+    <div className={["flex flex-col grow items-center", step === "intro" ? "justify-center" : ""].join(" ")}>
+      <div className={`w-full max-w-5xl px-5 ${step === "intro" ? "py-10" : "pt-6 space-y-6"}`}>
         {step === "intro" ? <IntroStep onNext={() => setStep("pk")} /> : null}
 
         {step === "pk" ? (

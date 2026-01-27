@@ -30,10 +30,19 @@ export function EnterPrivateKeyStep(props: {
   return (
     <div className="bg-base-100 rounded-3xl p-8 border border-base-300 space-y-6">
       <div>
-        <h2 className="text-2xl font-bold m-0">Paste compromised private key</h2>
+        <h2 className="text-2xl font-bold m-0">Paste your compromised wallet&apos;s private key</h2>
         <p className="mt-2 text-sm text-neutral">
-          This private key stays in-memory in your browser session and is used to sign EIP-7702 authorizations right
-          before quoting/executing. It is never sent to our server.
+          This private key stays in-memory in your browser session and is used to sign the recovery transactions. It is
+          never sent to our server.
+          <br /> You can read more about{" "}
+          <a href="/how-it-works" className="link">
+            how it works
+          </a>{" "}
+          and also feel free to{" "}
+          <a href="https://github.com/buidlguidl/hacked-wallet-recovery-v2" className="link">
+            audit the code
+          </a>{" "}
+          that this website uses.
         </p>
       </div>
 
