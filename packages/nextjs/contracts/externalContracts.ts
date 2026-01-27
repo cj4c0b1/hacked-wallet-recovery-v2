@@ -232,12 +232,12 @@ export const CREATE2_FACTORY_ABI = [
 ] as const satisfies Abi;
 
 const externalContracts = {
-  31337: {
-    UniversalRecoveryDelegate: {
-      address: "0x700b6A60ce7EaaEA56F065753d8dcB9653dbAD35",
-      abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
-    },
-  },
+  // 31337: {
+  //   UniversalRecoveryDelegate: {
+  //     address: "0x700b6A60ce7EaaEA56F065753d8dcB9653dbAD35",
+  //     abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
+  //   },
+  // },
   // Ethereum
   1: {
     UniversalRecoveryDelegate: {
@@ -431,12 +431,12 @@ const externalContracts = {
   },
 
   // Sepolia
-  11155111: {
-    UniversalRecoveryDelegate: {
-      address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
-      abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
-    },
-  },
+  // 11155111: {
+  //   UniversalRecoveryDelegate: {
+  //     address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
+  //     abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
+  //   },
+  // },
 } as const;
 
 export default externalContracts satisfies GenericContractsDeclaration;

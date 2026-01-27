@@ -6,9 +6,11 @@ import type { RecoveryAsset } from "../types";
 import { AddressInput } from "@scaffold-ui/components";
 import type { Address } from "viem";
 import type { Hex } from "viem";
-import { getAddress, isAddress, parseAbi, parseTransaction } from "viem";
+import { formatUnits, getAddress, isAddress, parseAbi, parseTransaction } from "viem";
+import { getPublicClient } from "wagmi/actions";
 import externalContracts from "~~/contracts/externalContracts";
 import useFetchContractAbi from "~~/hooks/useFetchContractAbi";
+import { wagmiConfig } from "~~/services/web3/wagmiConfig";
 import type { ZerionNftView, ZerionPositionsView } from "~~/utils/recovery/zerion";
 import { getTargetNetworkById, sortNetworksForDropdown } from "~~/utils/scaffold-eth/networks";
 
@@ -40,7 +42,14 @@ function isWriteFunction(fn: any): boolean {
   return sm === "nonpayable" || sm === "payable";
 }
 
+type OnchainTokenInfo = {
+  balanceWei: string; // bigint string
+  decimals: number;
+  formatted: string; // decimal string
+};
+
 export function SelectAssetsStep(props: {
+  compromisedAddress?: Address;
   assets: RecoveryAsset[];
   onChangeAssets: (next: RecoveryAsset[]) => void;
   positionsView: ZerionPositionsView | null;
@@ -64,6 +73,9 @@ export function SelectAssetsStep(props: {
     rawTxHex: false,
   });
   const selectedSet = useMemo(() => new Set(props.selectedIndexes), [props.selectedIndexes]);
+
+  const [onchainTokenInfoByKey, setOnchainTokenInfoByKey] = useState<Record<string, OnchainTokenInfo>>({});
+  const onchainLoadSeqRef = useRef(0);
 
   const supportedChainIds = useMemo(() => {
     return new Set(
@@ -149,6 +161,119 @@ export function SelectAssetsStep(props: {
     if (idx == null) return;
     toggle(idx);
   };
+
+  useEffect(() => {
+    const run = async () => {
+      if (!props.compromisedAddress) return;
+      const seq = ++onchainLoadSeqRef.current;
+
+      // Only look up balances for tokens we might transfer (native + ERC-20).
+      const keysToFetch = tokenIndexes
+        .map(i => ({ i, a: props.assets[i] }))
+        .filter(x => x.a && supportedChainIds.has(x.a.chainId))
+        .map(x => ({ i: x.i, a: x.a, key: assetKey(x.a) }));
+
+      // De-dupe by key to avoid redundant RPC calls.
+      const seen = new Set<string>();
+      const uniq = keysToFetch.filter(x => {
+        if (seen.has(x.key)) return false;
+        seen.add(x.key);
+        return true;
+      });
+      if (!uniq.length) return;
+
+      const erc20Abi = parseAbi([
+        "function balanceOf(address) view returns (uint256)",
+        "function decimals() view returns (uint8)",
+      ]);
+
+      const updates: Record<string, OnchainTokenInfo> = {};
+      await Promise.all(
+        uniq.map(async ({ a, key }) => {
+          try {
+            const pc = getPublicClient(wagmiConfig as any, { chainId: a.chainId });
+            if (!pc) return;
+            if (a.standard === "native") {
+              const bal = await pc.getBalance({ address: props.compromisedAddress! });
+              const decimals = 18;
+              updates[key] = {
+                balanceWei: bal.toString(),
+                decimals,
+                formatted: formatUnits(bal, decimals),
+              };
+              return;
+            }
+            if (a.standard === "erc20") {
+              const [bal, decimalsRaw] = await Promise.all([
+                pc.readContract({
+                  address: a.contract,
+                  abi: erc20Abi,
+                  functionName: "balanceOf",
+                  args: [props.compromisedAddress!],
+                }) as Promise<unknown>,
+                pc
+                  .readContract({ address: a.contract, abi: erc20Abi, functionName: "decimals" })
+                  .catch(() => 18) as Promise<unknown>,
+              ]);
+              const balBig = typeof bal === "bigint" ? bal : BigInt(String(bal ?? "0"));
+              const decimals =
+                typeof decimalsRaw === "number" && Number.isFinite(decimalsRaw)
+                  ? Math.max(0, Math.min(255, Math.floor(decimalsRaw)))
+                  : typeof decimalsRaw === "bigint"
+                    ? Math.max(0, Math.min(255, Number(decimalsRaw)))
+                    : 18;
+              updates[key] = {
+                balanceWei: balBig.toString(),
+                decimals,
+                formatted: formatUnits(balBig, decimals),
+              };
+            }
+          } catch {
+            // ignore
+          }
+        }),
+      );
+
+      if (onchainLoadSeqRef.current !== seq) return;
+      if (Object.keys(updates).length) {
+        setOnchainTokenInfoByKey(prev => ({ ...prev, ...updates }));
+
+        // Clamp scanned ERC-20 amounts to exact onchain balances and auto-deselect zero balances.
+        let changed = false;
+        const nextAssets = props.assets.map(asset => {
+          if (asset.standard !== "erc20") return asset;
+          const k = assetKey(asset);
+          const info = updates[k];
+          if (!info) return asset;
+          const nextAmount = info.balanceWei;
+          if ((asset.amount ?? "0") === nextAmount) return asset;
+          changed = true;
+          return { ...asset, amount: nextAmount } as RecoveryAsset;
+        });
+
+        let nextSelected = props.selectedIndexes;
+        const zeroSelected = new Set<number>();
+        for (const i of props.selectedIndexes) {
+          const a = props.assets[i];
+          if (!a) continue;
+          const k = a.standard === "erc20" || a.standard === "native" ? assetKey(a) : null;
+          if (!k) continue;
+          const info = updates[k];
+          if (!info) continue;
+          if (info.balanceWei === "0") zeroSelected.add(i);
+        }
+        if (zeroSelected.size) {
+          nextSelected = props.selectedIndexes.filter(i => !zeroSelected.has(i));
+        }
+
+        if (changed) props.onChangeAssets(nextAssets);
+        if (nextSelected !== props.selectedIndexes) props.onChangeSelected(nextSelected);
+      }
+    };
+
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.compromisedAddress, props.assets, supportedChainIds, tokenIndexes]);
 
   const selectAllInTab = () => {
     const add = tab === "tokens" ? tokenIndexes : tab === "nfts" ? nftIndexes : customIndexes;
@@ -281,6 +406,72 @@ export function SelectAssetsStep(props: {
       groups: nextGroups,
     };
   }, [missingFromPortfolioTokenIndexes, props.assets, props.positionsView, showUnverified]);
+
+  const positionsViewForDisplay = useMemo((): ZerionPositionsView | null => {
+    const base = positionsViewWithInjectedUnverified ?? props.positionsView;
+    if (!base) return null;
+
+    const tokenKeyForRow = (row: any): string | null => {
+      const chainId = typeof row?.chainId === "number" ? row.chainId : Number(row?.chainId);
+      if (!Number.isFinite(chainId)) return null;
+      const std = row?.standard;
+      if (std === "native") return `native:${chainId}`;
+      const c = typeof row?.contract === "string" ? row.contract : null;
+      if (std === "erc20" && c) return `erc20:${chainId}:${c.toLowerCase()}`;
+      return null;
+    };
+
+    // Patch wallet rows with exact onchain balances (Zerion can be rounded/stale).
+    return {
+      ...base,
+      groups: (base.groups ?? []).map(g => {
+        if (g.id !== "wallet") return g;
+        return {
+          ...g,
+          rows: (g.rows ?? []).map(r => {
+            const key = tokenKeyForRow(r);
+            const info = key ? onchainTokenInfoByKey[key] : null;
+            if (!key || !info) return r;
+            return {
+              ...r,
+              amountInt: info.balanceWei,
+              quantityDecimals: info.decimals,
+              quantityNumeric: info.formatted,
+              quantityText: r.tokenSymbol ? `${info.formatted} ${r.tokenSymbol}` : info.formatted,
+            };
+          }),
+        };
+      }),
+    };
+  }, [onchainTokenInfoByKey, positionsViewWithInjectedUnverified, props.positionsView]);
+
+  const { walletPositionsView, protocolPositionsView } = useMemo(() => {
+    const pv = positionsViewForDisplay ?? positionsViewWithInjectedUnverified ?? props.positionsView;
+    if (!pv)
+      return {
+        walletPositionsView: null as ZerionPositionsView | null,
+        protocolPositionsView: null as ZerionPositionsView | null,
+      };
+
+    const groups = Array.isArray(pv.groups) ? pv.groups : [];
+    const walletGroup = groups.find(g => g.id === "wallet") ?? null;
+    const protocolGroups = groups.filter(g => g.id !== "wallet");
+
+    return {
+      walletPositionsView: walletGroup
+        ? ({
+            totalValueUsd: Math.max(walletGroup.totalValueUsd ?? 0, 0),
+            groups: [walletGroup],
+          } satisfies ZerionPositionsView)
+        : null,
+      protocolPositionsView: protocolGroups.length
+        ? ({
+            totalValueUsd: pv.totalValueUsd ?? 0,
+            groups: protocolGroups,
+          } satisfies ZerionPositionsView)
+        : null,
+    };
+  }, [positionsViewForDisplay, positionsViewWithInjectedUnverified, props.positionsView]);
 
   const unverifiedNftIndexes = useMemo(() => {
     // NFTs present in `assets` but missing metadata in `nfts` view.
@@ -740,14 +931,46 @@ export function SelectAssetsStep(props: {
         <div className="mt-4">
           {props.positionsView ? (
             <div className="space-y-3">
-              <PositionsOverview
-                positionsView={positionsViewWithInjectedUnverified ?? props.positionsView}
-                selectable
-                selectedKeys={selectedTokenKeys}
-                onToggleKey={toggleTokenKey}
-                showUnverified={showUnverified}
-                showGroupHeader={false}
-              />
+              {walletPositionsView ? (
+                <>
+                  <div className="text-xs text-neutral">
+                    Wallet balances are shown using <span className="font-semibold">onchain</span> reads (Zerion data{" "}
+                    can be stale/rounded).
+                  </div>
+                  <PositionsOverview
+                    positionsView={walletPositionsView}
+                    selectable
+                    selectedKeys={selectedTokenKeys}
+                    onToggleKey={toggleTokenKey}
+                    showUnverified={showUnverified}
+                    showGroupHeader={false}
+                  />
+                </>
+              ) : (
+                <div className="text-sm text-neutral">No wallet-held tokens found.</div>
+              )}
+
+              {protocolPositionsView ? (
+                <div className="pt-2">
+                  <div className="text-sm font-semibold">Positions</div>
+                  <div className="text-xs text-neutral mt-1">
+                    These are protocol positions. They may not be transferable as ERC-20 balances (unless you see the
+                    underlying ERC-20s above).
+                    <br /> You may need to{" "}
+                    <a href="/recover/custom-calls" target="_blank" rel="noreferrer" className="link">
+                      add a custom call
+                    </a>{" "}
+                    to unwind and transfer them.
+                  </div>
+                  <div className="mt-3">
+                    <PositionsOverview
+                      positionsView={protocolPositionsView}
+                      showUnverified={showUnverified}
+                      showGroupHeader
+                    />
+                  </div>
+                </div>
+              ) : null}
 
               {!showUnverified && unverifiedTokenIndexes.length ? (
                 <div className="text-xs text-neutral">

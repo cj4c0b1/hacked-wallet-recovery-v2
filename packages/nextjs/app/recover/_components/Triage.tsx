@@ -4,8 +4,8 @@ import { useMemo, useState } from "react";
 import type { RecoveryAsset } from "./types";
 import { AddressInput } from "@scaffold-ui/components";
 import type { Address } from "viem";
-import { hardhat } from "viem/chains";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
+import scaffoldConfig from "~~/scaffold.config";
 
 const emptyAsset = (chainId: number): RecoveryAsset => ({
   chainId,
@@ -22,7 +22,7 @@ export function Triage(props: {
   onNext: () => void;
 }) {
   const { targetNetwork } = useTargetNetwork();
-  const defaultChainId = targetNetwork?.id ?? hardhat.id;
+  const defaultChainId = targetNetwork?.id ?? scaffoldConfig.targetNetworks[0]?.id ?? 1;
 
   const [loadingScan, setLoadingScan] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);

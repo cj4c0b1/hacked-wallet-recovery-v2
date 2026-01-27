@@ -14,6 +14,73 @@ type ZerionResponse = {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+function shouldDebugLogZerion(): boolean {
+  const v = process.env.DEBUG_ZERION?.toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+function safeJsonStringify(value: unknown, maxChars = 50_000): string {
+  try {
+    const s = JSON.stringify(value, null, 2);
+    if (s.length <= maxChars) return s;
+    return `${s.slice(0, maxChars)}\n... truncated (${s.length} chars total)`;
+  } catch {
+    return "<unserializable>";
+  }
+}
+
+function summarizeZerionPositionsForDebug(positionsJson: ZerionResponse) {
+  const items = Array.isArray(positionsJson?.data) ? positionsJson.data : [];
+
+  const rows = items.map(item => {
+    const a: any = item?.attributes ?? {};
+    const rel: any = item?.relationships ?? {};
+    return {
+      id: asString((item as any)?.id),
+      type: asString((item as any)?.type),
+      chain: asString(rel?.chain?.data?.id) ?? asString(a?.chain_id) ?? asString(a?.chain),
+      positionType: asString(a?.position_type),
+      protocol: asString(a?.protocol),
+      appName: asString(a?.application_metadata?.name),
+      dappId: asString(rel?.dapp?.data?.id),
+      fungibleId: asString(rel?.fungible?.data?.id),
+      tokenSymbol: asString(a?.fungible_info?.symbol),
+      tokenName: asString(a?.fungible_info?.name),
+      verified: a?.fungible_info?.flags?.verified,
+      displayable: a?.flags?.displayable,
+      valueUsd: asNumber(a?.value),
+      quantityInt: asString(a?.quantity?.int),
+      quantityNumeric: asString(a?.quantity?.numeric),
+      quantityDecimals: asNumber(a?.quantity?.decimals),
+    };
+  });
+
+  // Compute likely duplicate "positions" by chain/app/token/type.
+  const keyFor = (r: any) =>
+    [
+      r.chain ?? "unknown",
+      r.dappId ?? r.appName ?? r.protocol ?? "unknown-app",
+      r.positionType ?? "unknown-type",
+      r.fungibleId ?? r.tokenSymbol ?? "unknown-token",
+    ].join("|");
+
+  const counts = new Map<string, number>();
+  for (const r of rows) counts.set(keyFor(r), (counts.get(keyFor(r)) ?? 0) + 1);
+
+  const duplicates = Array.from(counts.entries())
+    .filter(([, n]) => n > 1)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 50)
+    .map(([key, n]) => ({ key, count: n }));
+
+  return {
+    itemCount: items.length,
+    duplicates,
+    // Keep the full per-item list available, but callers should be mindful of log size.
+    rows,
+  };
+}
+
 export type NormalizedAsset = {
   chainId: number;
   standard: "native" | "erc20" | "erc721" | "erc1155";
@@ -361,6 +428,11 @@ function normalizeFungiblePositionsToAssets(params: {
     const a: any = item?.attributes ?? {};
     const rel: any = item?.relationships ?? {};
     const id = asString((item as any)?.id);
+
+    // Only wallet-held balances are directly transferable.
+    // Protocol positions (deposit/loan/reward/etc) require an unwind and must not be treated as ERC-20 transfers.
+    const positionType = (asString(a?.position_type) ?? "").toLowerCase();
+    if (positionType && positionType !== "wallet") continue;
     const network = asString(rel?.chain?.data?.id) ?? asString(a?.chain_id) ?? asString(a?.chain);
     const chainId = inferChainId(network);
     if (!chainId) continue;
@@ -500,6 +572,26 @@ export async function fetchZerionScanData(params: {
     fetchZerionFungiblePositionsRaw({ apiKey, compromisedAddress: params.compromisedAddress }),
     fetchNftPositions({ apiKey, compromisedAddress: params.compromisedAddress }),
   ]);
+
+  if (shouldDebugLogZerion()) {
+    console.log("[zerion] positionsJson", JSON.stringify(positionsJson, null, 2));
+    console.log("[zerion] nftPositionsJson", JSON.stringify(nftPositionsJson, null, 2));
+    const summary = summarizeZerionPositionsForDebug(positionsJson);
+    // Intentionally server-side only. Enable via DEBUG_ZERION=1 in env.
+    console.log(
+      `[zerion] scan compromisedAddress=${params.compromisedAddress} positions=${summary.itemCount} nfts=${
+        Array.isArray(nftPositionsJson?.data) ? nftPositionsJson.data.length : 0
+      }`,
+    );
+    if (summary.duplicates.length) {
+      console.log(
+        `[zerion] potential-duplicate-keys (top ${summary.duplicates.length}):\n${safeJsonStringify(summary.duplicates)}`,
+      );
+    } else {
+      console.log("[zerion] potential-duplicate-keys: none detected by heuristic");
+    }
+    console.log(`[zerion] raw-positions (summarized):\n${safeJsonStringify(summary.rows)}`);
+  }
 
   const assets = [
     ...normalizeFungiblePositionsToAssets({ positionsJson, chainIds: params.chainIds }),

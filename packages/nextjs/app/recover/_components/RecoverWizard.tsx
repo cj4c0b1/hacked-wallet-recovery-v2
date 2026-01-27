@@ -82,6 +82,7 @@ export function RecoverWizard() {
 
         {step === "assets" ? (
           <SelectAssetsStep
+            compromisedAddress={compromisedAddress}
             assets={assets}
             onChangeAssets={setAssets}
             positionsView={positionsView}
