@@ -15,6 +15,7 @@ import { type RecoveryAsset, buildAssetCalls, encodeExecuteBatch, getDelegateFor
 import { fallbackGasLimit, getMaxTxGas, padGasLimit } from "~~/utils/recovery/gasLimit";
 import { hashCalls, readIntentNonce, typedDataForRecoveryIntent } from "~~/utils/recovery/intent";
 import { jsonSafe } from "~~/utils/recovery/jsonSafe";
+import { rebalancePaymasterAcross } from "~~/utils/recovery/paymasterRebalance";
 import { canonicalAssetsHash } from "~~/utils/recovery/quotePricing";
 import { rateLimit } from "~~/utils/recovery/rateLimit";
 import { decodeRevertData } from "~~/utils/recovery/revert";
@@ -380,6 +381,15 @@ export async function POST(req: Request) {
         const code = e?.code ?? e?.cause?.code ?? null;
         results[chainId] = { ok: false, chainId, error: msg, errorCode: code };
       }
+    }
+
+    // Automatically rebalance paymaster across chains after execution.
+    // This is best-effort and intentionally non-fatal: user recovery should not fail because rebalance failed.
+    try {
+      // Not awaiting since this doesn't need to complete to return the response to the user
+      rebalancePaymasterAcross({ paymasterAccount, execute: true });
+    } catch (e: any) {
+      console.warn("[hwr.execute] paymaster rebalance failed", e?.message ?? e);
     }
 
     return NextResponse.json(

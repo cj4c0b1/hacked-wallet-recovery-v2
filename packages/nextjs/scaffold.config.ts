@@ -17,7 +17,7 @@ export const DEFAULT_ALCHEMY_API_KEY = "cR4WnXePioePZ5fFrnSiR";
 
 const rpcOverrides: Record<number, string> = {
   // Example:
-  [chains.mainnet.id]: "https://mainnet.rpc.buidlguidl.com",
+  // [chains.mainnet.id]: "https://mainnet.rpc.buidlguidl.com",
   // [chains.base.id]: "https://base-mainnet.infura.io/v3/645d6bd74c4a4faabf1c469e5a4d1988",
   // [chains.gnosis.id]: "https://rpc.gnosischain.com",
   // [chains.polygon.id]: "https://polygon-mainnet.infura.io/v3/645d6bd74c4a4faabf1c469e5a4d1988",
@@ -33,6 +33,22 @@ const customChainsById: Record<number, chains.Chain> = {
     rpcUrls: {
       default: { http: ["https://rpc.stable.xyz"] },
       public: { http: ["https://rpc.stable.xyz"] },
+    },
+  }),
+  // HyperEVM (Hyperliquid) mainnet.
+  // Avoids chainId collisions in upstream registries (some testnets use 999).
+  999: defineChain({
+    id: 999,
+    name: "HyperEVM",
+    nativeCurrency: { name: "HYPE", symbol: "HYPE", decimals: 18 },
+    rpcUrls: {
+      // Official RPC: https://rpc.hyperliquid.xyz/evm
+      default: {
+        http: ["https://rpc.hyperliquid.xyz/evm"],
+      },
+      public: {
+        http: ["https://rpc.hyperliquid.xyz/evm"],
+      },
     },
   }),
 };
@@ -68,7 +84,8 @@ const targetNetworksFromExternalContracts = (() => {
     .filter((x): x is number => Number.isFinite(x))
     .sort((a, b) => a - b);
   const nets = ids
-    .map(id => viemChainsById.get(id) ?? customChainsById[id])
+    // Prefer custom chain defs (fixes chainId collisions like HyperEVM=999).
+    .map(id => customChainsById[id] ?? viemChainsById.get(id))
     .filter((x): x is chains.Chain => Boolean(x));
   return nets as readonly chains.Chain[];
 })();

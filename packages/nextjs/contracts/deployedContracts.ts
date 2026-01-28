@@ -39,6 +39,49 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "eip712Domain",
+          inputs: [],
+          outputs: [
+            {
+              name: "fields",
+              type: "bytes1",
+              internalType: "bytes1",
+            },
+            {
+              name: "name",
+              type: "string",
+              internalType: "string",
+            },
+            {
+              name: "version",
+              type: "string",
+              internalType: "string",
+            },
+            {
+              name: "chainId",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "verifyingContract",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "salt",
+              type: "bytes32",
+              internalType: "bytes32",
+            },
+            {
+              name: "extensions",
+              type: "uint256[]",
+              internalType: "uint256[]",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
           name: "executeBatchRecovery",
           inputs: [
             {
@@ -95,33 +138,83 @@ const deployedContracts = {
         {
           type: "function",
           name: "nonces",
-          inputs: [{ name: "", type: "address", internalType: "address" }],
-          outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+          inputs: [
+            {
+              name: "authorizer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
           stateMutability: "view",
         },
         {
           type: "function",
           name: "recoveryIntentDigest",
           inputs: [
-            { name: "recoveryAddress", type: "address", internalType: "address" },
+            {
+              name: "recoveryAddress",
+              type: "address",
+              internalType: "address",
+            },
             {
               name: "calls",
               type: "tuple[]",
               internalType: "struct UniversalRecoveryDelegate.Call[]",
               components: [
-                { name: "to", type: "address", internalType: "address" },
-                { name: "value", type: "uint256", internalType: "uint256" },
-                { name: "data", type: "bytes", internalType: "bytes" },
+                {
+                  name: "to",
+                  type: "address",
+                  internalType: "address",
+                },
+                {
+                  name: "value",
+                  type: "uint256",
+                  internalType: "uint256",
+                },
+                {
+                  name: "data",
+                  type: "bytes",
+                  internalType: "bytes",
+                },
               ],
             },
-            { name: "nonce", type: "uint256", internalType: "uint256" },
-            { name: "deadline", type: "uint256", internalType: "uint256" },
+            {
+              name: "nonce",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "deadline",
+              type: "uint256",
+              internalType: "uint256",
+            },
           ],
           outputs: [
-            { name: "digest", type: "bytes32", internalType: "bytes32" },
-            { name: "callsHash", type: "bytes32", internalType: "bytes32" },
+            {
+              name: "digest",
+              type: "bytes32",
+              internalType: "bytes32",
+            },
+            {
+              name: "callsHash",
+              type: "bytes32",
+              internalType: "bytes32",
+            },
           ],
           stateMutability: "view",
+        },
+        {
+          type: "event",
+          name: "EIP712DomainChanged",
+          inputs: [],
+          anonymous: false,
         },
         {
           type: "error",
@@ -158,23 +251,59 @@ const deployedContracts = {
           type: "error",
           name: "IntentExpired",
           inputs: [
-            { name: "deadline", type: "uint256", internalType: "uint256" },
-            { name: "nowTs", type: "uint256", internalType: "uint256" },
+            {
+              name: "deadline",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "nowTs",
+              type: "uint256",
+              internalType: "uint256",
+            },
           ],
         },
         {
           type: "error",
           name: "InvalidNonce",
           inputs: [
-            { name: "signer", type: "address", internalType: "address" },
-            { name: "expected", type: "uint256", internalType: "uint256" },
-            { name: "provided", type: "uint256", internalType: "uint256" },
+            {
+              name: "signer",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "expected",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "provided",
+              type: "uint256",
+              internalType: "uint256",
+            },
           ],
+        },
+        {
+          type: "error",
+          name: "InvalidShortString",
+          inputs: [],
         },
         {
           type: "error",
           name: "InvalidSignature",
           inputs: [],
+        },
+        {
+          type: "error",
+          name: "StringTooLong",
+          inputs: [
+            {
+              name: "str",
+              type: "string",
+              internalType: "string",
+            },
+          ],
         },
       ],
       inheritedFunctions: {},
@@ -1015,7 +1144,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 2,
+      deployedOnBlock: 3,
     },
   },
 } as const;
