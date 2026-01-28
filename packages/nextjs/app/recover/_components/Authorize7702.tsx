@@ -115,7 +115,7 @@ export function Authorize7702(props: {
 
   return (
     <div className="space-y-4">
-      <div className="bg-base-100 rounded-3xl p-6 border border-base-300">
+      <div className="bg-base-100 rounded-3xl p-5 sm:p-6 border border-base-300">
         <h2 className="text-xl font-bold mb-2">2) Sign EIP-7702 Authorization</h2>
         <p className="text-sm text-neutral">
           Your private key stays in this browser memory only. It is never sent to the server.
@@ -161,7 +161,7 @@ export function Authorize7702(props: {
         {error ? <div className="mt-3 text-sm text-error break-words">{error}</div> : null}
       </div>
 
-      <div className="bg-base-100 rounded-3xl p-6 border border-base-300">
+      <div className="bg-base-100 rounded-3xl p-5 sm:p-6 border border-base-300">
         <h3 className="text-lg font-bold mb-2">Signed Authorization</h3>
         <pre className="bg-base-200 rounded-2xl p-4 text-xs overflow-auto">
           {props.authorization ? safeJson(props.authorization) : "—"}

@@ -5,13 +5,14 @@ import { getMetadata } from "~~/utils/scaffold-eth/getMetadata";
 export const metadata = getMetadata({
   title: "How it works",
   description: "How the recovery flow works, and why it’s safe",
+  canonicalPath: "/how-it-works",
 });
 
 const HowItWorksPage: NextPage = () => {
   return (
     <div className="flex items-center flex-col grow pt-10">
       <div className="w-full max-w-3xl px-5">
-        <div className="bg-base-100 rounded-3xl p-8 border border-base-300">
+        <div className="bg-base-100 rounded-3xl p-5 sm:p-8 border border-base-300">
           <div className="flex items-center justify-between gap-3">
             <h1 className="text-3xl font-bold m-0">How it works</h1>
             <Link href="/" className="link text-sm">
@@ -28,9 +29,9 @@ const HowItWorksPage: NextPage = () => {
           <div className="mt-6 rounded-2xl bg-base-200 p-5">
             <h2 className="text-lg font-bold m-0">Plain-English summary</h2>
             <p className="mt-3 text-sm text-neutral leading-relaxed">
-              If you still have access to a compromised wallet’s private key, this site helps you{" "}
-              <span className="font-semibold">move your assets to a new safe wallet</span> quickly by batching the
-              transfers. You choose what to recover and where it goes.
+              This site helps you <span className="font-semibold">move your assets to a new safe wallet</span> smoothly
+              by batching the transfers and sending in a way that the hacker does not expect. You choose what to recover
+              and where it goes.
             </p>
           </div>
 
@@ -47,26 +48,8 @@ const HowItWorksPage: NextPage = () => {
               <li>
                 The only thing we send to our server about the compromised wallet is the{" "}
                 <span className="font-semibold">public address</span> (to look up assets) and{" "}
-                <span className="font-semibold">signed authorizations</span> (cryptographic proofs) — never the key
+                <span className="font-semibold">signed authorizations</span> (cryptographic proofs), never the key
                 itself.
-              </li>
-            </ul>
-          </div>
-
-          <div className="mt-8 rounded-2xl border border-base-300 p-5">
-            <h2 className="text-xl font-bold m-0">Safety checklist (recommended)</h2>
-            <ul className="mt-3 text-sm text-neutral space-y-2 list-disc list-inside">
-              <li>
-                Use a <span className="font-semibold">brand new “safe” wallet address</span> as the destination.
-              </li>
-              <li>
-                Only pay the fee from a wallet you trust — and{" "}
-                <span className="font-semibold">review the payment transaction</span>
-                in your wallet (amount + receiver).
-              </li>
-              <li>
-                After you finish, <span className="font-semibold">refresh/close the tab</span>
-                to clear the in-memory key.
               </li>
               <li>
                 If you’re worried about phishing, you can{" "}
@@ -76,17 +59,13 @@ const HowItWorksPage: NextPage = () => {
                 and run it yourself.
               </li>
             </ul>
-            <p className="mt-3 text-xs text-neutral leading-relaxed">
-              Important: anyone who has your compromised private key can potentially move those funds. This site can’t
-              “un-hack” a wallet — it just helps you move assets faster.
-            </p>
           </div>
 
           <h2 className="mt-8 text-xl font-bold">What happens step-by-step</h2>
           <ol className="mt-3 text-sm text-neutral space-y-3 list-decimal list-inside">
             <li>
-              <span className="font-semibold">You paste the compromised wallet’s private key (on your device).</span> We
-              derive the public address and create signed recovery authorizations in your browser.
+              <span className="font-semibold">You paste the compromised wallet’s private key.</span> We derive the
+              public address and create signed recovery authorizations in your browser.
             </li>
             <li>
               <span className="font-semibold">We look up the wallet’s assets by address.</span> We ask our server to{" "}
@@ -110,7 +89,7 @@ const HowItWorksPage: NextPage = () => {
             </li>
           </ol>
 
-          <h2 className="mt-8 text-xl font-bold">Advanced / technical details (for power users)</h2>
+          <h2 className="mt-8 text-xl font-bold">Advanced / technical details</h2>
 
           <div className="mt-3 rounded-2xl border border-base-300 p-5">
             <h3 className="text-base font-bold m-0">What data is sent to the server</h3>
@@ -144,42 +123,15 @@ const HowItWorksPage: NextPage = () => {
             <p className="mt-3 text-sm text-neutral leading-relaxed">
               The recovery uses <span className="font-semibold">EIP-7702</span> authorizations. Your compromised EOA{" "}
               signs an authorization (in your browser) that delegates execution to a recovery contract called{" "}
-              <span className="font-mono">UniversalRecoveryDelegate</span>. Our server then broadcasts an
-              <span className="font-semibold">EIP-7702</span>
-              transaction that executes a batch of transfers to the safe address.
+              <span className="font-mono">UniversalRecoveryDelegate</span>. Our server then broadcasts an{" "}
+              <span className="font-semibold">EIP-7702</span> transaction that executes a batch of transfers to the safe
+              address.
             </p>
             <p className="mt-3 text-sm text-neutral leading-relaxed">
-              The server uses a paymaster hot wallet (configured by{" "}
-              <span className="font-mono">PAYMASTER_PRIVATE_KEY</span>) to submit those recovery transactions. This is{" "}
-              why you pay a fee first: the paymaster covers the execution costs on the destination chains.
+              The server uses a paymaster to send the signed authorizations. This is why you pay a fee first: the
+              paymaster covers the execution costs on the destination chains.
             </p>
           </div>
-
-          <div className="mt-4 rounded-2xl border border-base-300 p-5">
-            <h3 className="text-base font-bold m-0">Why the server can’t “steal your safe wallet”</h3>
-            <ul className="mt-3 text-sm text-neutral space-y-2 list-disc list-inside">
-              <li>
-                The only wallet you connect is your <span className="font-semibold">safe wallet</span>, and the only{" "}
-                thing it signs here is the <span className="font-semibold">fee payment</span>
-                you approve in your wallet UI.
-              </li>
-              <li>
-                The recovery transactions are broadcast by the server’s paymaster, but they only move assets{" "}
-                <span className="font-semibold">from the compromised wallet</span> to the destination you chose.
-              </li>
-              <li>
-                The execution is bound to a specific set of calls and a one-time nonce (server-validated), and execution
-                can fail if the compromised account nonce changes (e.g., attacker activity).
-              </li>
-            </ul>
-          </div>
-
-          <h2 className="mt-8 text-xl font-bold">Forked networks</h2>
-          <p className="mt-3 text-sm text-neutral leading-relaxed">
-            For testing and development, we run against a fork RPC (anvil). That lets us interact with real token
-            contracts and balances without taking risk on mainnet. When you move to production, you’ll point the RPC at
-            the target network.
-          </p>
         </div>
       </div>
     </div>

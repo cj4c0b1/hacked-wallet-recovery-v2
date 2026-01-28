@@ -879,7 +879,7 @@ export function SelectAssetsStep(props: {
   };
 
   return (
-    <div className="bg-base-100 rounded-3xl p-8 border border-base-300">
+    <div className="bg-base-100 rounded-3xl p-5 sm:p-8 border border-base-300">
       <h2 className="text-2xl font-bold m-0">Select assets to recover</h2>
       <p className="mt-2 text-sm text-neutral">
         Choose what you want to move. We’ll execute the transfers in one sponsored transaction.

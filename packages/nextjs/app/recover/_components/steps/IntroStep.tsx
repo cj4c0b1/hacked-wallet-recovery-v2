@@ -59,7 +59,7 @@ export function IntroStep(props: { onNext: () => void }) {
   const ctaLabel = "Ready?";
 
   return (
-    <div className="bg-base-100 rounded-3xl p-10 md:p-14 border border-base-300 flex flex-col max-h-[80vh] min-h-[320px]">
+    <div className="bg-base-100 rounded-3xl p-6 sm:p-10 md:p-14 border border-base-300 flex flex-col max-h-[80vh] min-h-[320px]">
       <div className="flex-1 flex items-center">
         <div className="max-w-3xl mx-auto w-full text-left">
           <h1

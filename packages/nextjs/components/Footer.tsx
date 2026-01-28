@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { hardhat } from "viem/chains";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { HeartIcon } from "@heroicons/react/24/outline";
@@ -12,14 +13,20 @@ import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
  * Site footer
  */
 export const Footer = () => {
+  const pathname = usePathname();
   const { targetNetwork } = useTargetNetwork();
   const isLocalNetwork = targetNetwork.id === hardhat.id;
+
+  const bottomLink =
+    pathname === "/how-it-works"
+      ? { href: "/", label: "Back to recovery" }
+      : { href: "/how-it-works", label: "How does it work?" };
 
   return (
     <div className="min-h-0 py-5 px-1 mb-11 lg:mb-0">
       <div className="w-full flex justify-center mb-6">
-        <Link href="/how-it-works" className="link text-sm">
-          How does it work?
+        <Link href={bottomLink.href} className="link text-sm">
+          {bottomLink.label}
         </Link>
       </div>
       <div>

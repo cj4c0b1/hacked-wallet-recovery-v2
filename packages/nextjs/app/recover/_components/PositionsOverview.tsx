@@ -125,13 +125,13 @@ function GroupCard(props: {
 
       <div className={showHeader ? "px-5 md:px-6 pb-5 md:pb-6" : "p-5 md:p-6"}>
         <div className="overflow-x-auto">
-          <table className="table table-sm">
+          <table className="table table-sm table-fixed w-full">
             <thead>
               <tr className="text-xs text-neutral">
                 {selectable ? <th className="w-10" /> : null}
-                <th>Asset</th>
-                <th className="text-right">Balance</th>
-                <th className="text-right">Value</th>
+                <th className="w-full">Asset</th>
+                <th className="text-right w-36">Balance</th>
+                <th className="text-right w-32">Value</th>
               </tr>
             </thead>
             <tbody>
@@ -182,18 +182,18 @@ function GroupCard(props: {
                       </div>
 
                       <div className="min-w-0">
-                        <div className="font-semibold truncate">
-                          {row.tokenName}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-semibold truncate min-w-0">{row.tokenName}</span>
                           {row.tokenSymbol ? (
-                            <span className="ml-2 text-xs text-neutral">{row.tokenSymbol}</span>
+                            <span className="text-xs text-neutral shrink-0">{row.tokenSymbol}</span>
                           ) : null}
                           {row.isVerified === false ? (
-                            <span className="ml-2 text-[10px] text-warning bg-base-200 border border-base-300 rounded-full px-2 py-0.5 align-middle">
+                            <span className="text-[10px] text-warning bg-base-200 border border-base-300 rounded-full px-2 py-0.5 shrink-0">
                               Unverified
                             </span>
                           ) : null}
                           {row.chainId && !SUPPORTED_CHAIN_IDS.has(row.chainId) ? (
-                            <span className="ml-2 text-[10px] text-warning bg-base-200 border border-base-300 rounded-full px-2 py-0.5 align-middle">
+                            <span className="text-[10px] text-warning bg-base-200 border border-base-300 rounded-full px-2 py-0.5 shrink-0">
                               Unsupported network
                             </span>
                           ) : null}

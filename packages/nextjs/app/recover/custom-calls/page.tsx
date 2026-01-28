@@ -5,13 +5,14 @@ import { getMetadata } from "~~/utils/scaffold-eth/getMetadata";
 export const metadata = getMetadata({
   title: "Custom calls",
   description: "How to add custom contract calls during recovery",
+  canonicalPath: "/recover/custom-calls",
 });
 
 const CustomCallsPage: NextPage = () => {
   return (
     <div className="flex items-center flex-col grow pt-10">
       <div className="w-full max-w-3xl px-5">
-        <div className="bg-base-100 rounded-3xl p-8 border border-base-300">
+        <div className="bg-base-100 rounded-3xl p-5 sm:p-8 border border-base-300">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <h1 className="text-3xl font-bold m-0">Custom calls</h1>
             <Link href="/" className="link text-sm">

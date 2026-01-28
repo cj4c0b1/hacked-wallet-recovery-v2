@@ -51,7 +51,7 @@ export function KeyAndScanStep(props: {
   };
 
   return (
-    <div className="bg-base-100 rounded-3xl p-8 border border-base-300">
+    <div className="bg-base-100 rounded-3xl p-5 sm:p-8 border border-base-300">
       <h2 className="text-2xl font-bold m-0">Scan wallet</h2>
       <p className="mt-2 text-sm text-neutral">
         We’ll scan your compromised wallet for assets first. Authorizations will be signed automatically right before

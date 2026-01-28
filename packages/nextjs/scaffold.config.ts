@@ -17,7 +17,7 @@ export const DEFAULT_ALCHEMY_API_KEY = "cR4WnXePioePZ5fFrnSiR";
 
 const rpcOverrides: Record<number, string> = {
   // Example:
-  // [chains.mainnet.id]: "https://mainnet.rpc.buidlguidl.com",
+  [chains.mainnet.id]: "https://rpc.flashbots.net/fast",
   // [chains.base.id]: "https://base-mainnet.infura.io/v3/645d6bd74c4a4faabf1c469e5a4d1988",
   // [chains.gnosis.id]: "https://rpc.gnosischain.com",
   // [chains.polygon.id]: "https://polygon-mainnet.infura.io/v3/645d6bd74c4a4faabf1c469e5a4d1988",

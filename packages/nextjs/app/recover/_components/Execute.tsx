@@ -63,7 +63,7 @@ export function Execute(props: {
 
   return (
     <div className="space-y-4">
-      <div className="bg-base-100 rounded-3xl p-6 border border-base-300">
+      <div className="bg-base-100 rounded-3xl p-5 sm:p-6 border border-base-300">
         <h2 className="text-xl font-bold mb-2">4) Pay fee + Execute (server)</h2>
         <p className="text-sm text-neutral">
           You pay a fee from the connected safe wallet, then the server verifies it and broadcasts the sponsored
@@ -71,7 +71,7 @@ export function Execute(props: {
         </p>
       </div>
 
-      <div className="bg-base-100 rounded-3xl p-6 border border-base-300 space-y-3">
+      <div className="bg-base-100 rounded-3xl p-5 sm:p-6 border border-base-300 space-y-3">
         <div className="text-sm font-semibold">Connected wallet</div>
         <div className="text-sm">
           <Address address={connectedAddress} />
@@ -108,7 +108,7 @@ export function Execute(props: {
         ) : null}
       </div>
 
-      <div className="bg-base-100 rounded-3xl p-6 border border-base-300 space-y-3">
+      <div className="bg-base-100 rounded-3xl p-5 sm:p-6 border border-base-300 space-y-3">
         <div className="text-sm font-semibold">Execute</div>
         <button className="btn btn-primary btn-sm rounded-full" onClick={execute} disabled={execBusy}>
           {execBusy ? <span className="loading loading-spinner loading-sm" /> : null}

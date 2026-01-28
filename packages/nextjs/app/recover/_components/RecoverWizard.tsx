@@ -41,9 +41,12 @@ export function RecoverWizard() {
     [assets, selectedAssetIndexes],
   );
 
+  const shouldCenterVertically = step === "intro" || step === "pk";
+
   return (
-    <div className={["flex flex-col grow items-center", step === "intro" ? "justify-center" : ""].join(" ")}>
-      <div className={`w-full max-w-5xl px-5 ${step === "intro" ? "py-10" : "pt-6 space-y-6"}`}>
+    // Keep the intro / PK steps centered, but avoid re-centering once content expands (assets/pay/done).
+    <div className={`flex flex-col grow items-center ${shouldCenterVertically ? "justify-center" : "justify-start"}`}>
+      <div className="w-full max-w-5xl px-5 py-10">
         {step === "intro" ? <IntroStep onNext={() => setStep("pk")} /> : null}
 
         {step === "pk" ? (

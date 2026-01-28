@@ -7,12 +7,12 @@ import { getMetadata } from "~~/utils/scaffold-eth/getMetadata";
 
 export const metadata = getMetadata({
   title: "Hacked Wallet Recovery",
-  description: "Recover assets from compromised wallets.",
+  description: "Recover assets stuck in compromised wallets.",
 });
 
 const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
   return (
-    <html suppressHydrationWarning className={``}>
+    <html lang="en" suppressHydrationWarning className={``}>
       <body>
         <ThemeProvider enableSystem>
           <ScaffoldEthAppWithProviders>{children}</ScaffoldEthAppWithProviders>

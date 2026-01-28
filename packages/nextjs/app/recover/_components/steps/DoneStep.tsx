@@ -31,7 +31,7 @@ export function DoneStep(props: { result: any; executedAssets: RecoveryAsset[]; 
   }, [chainIds]);
 
   return (
-    <div className="bg-base-100 rounded-3xl p-8 border border-base-300">
+    <div className="bg-base-100 rounded-3xl p-5 sm:p-8 border border-base-300">
       <h2 className="text-2xl font-bold m-0">{ok ? "Assets moved" : "Recovery attempt completed"}</h2>
       <p className="mt-2 text-sm text-neutral">
         {ok

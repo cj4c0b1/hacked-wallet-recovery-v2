@@ -32,7 +32,10 @@ export function TopRightConnect() {
   }, [pathname, step]);
 
   return (
-    <div className="sticky top-0 z-20">
+    <div className="sticky top-0 z-20 relative">
+      {/* Backdrop blur layer (blurs page content underneath while scrolling) */}
+      <div className="absolute inset-0 pointer-events-none bg-base-200/60 backdrop-blur-md" />
+
       {/* Fixed logo on the far left (desktop) */}
       <div className="md:fixed md:left-4 md:top-3 z-30 hidden md:flex items-center">
         <Link href="/" className="flex items-center gap-2">
@@ -43,12 +46,6 @@ export function TopRightConnect() {
         </Link>
       </div>
 
-      <div className="w-full flex justify-center px-5 py-3">
-        <div className="w-full max-w-5xl">
-          <div className="pt-1">{showTrack ? <StepTrack step={step} /> : null}</div>
-        </div>
-      </div>
-
       {/* Fixed wallet/connect UI on the far right (desktop) */}
       <div className="md:fixed md:right-4 md:top-3 z-30 hidden md:flex items-center gap-2">
         <RainbowKitCustomConnectButton />
@@ -56,7 +53,7 @@ export function TopRightConnect() {
       </div>
 
       {/* Non-fixed wallet/connect UI for small screens */}
-      <div className="flex md:hidden items-center justify-between px-5 pb-3 gap-3">
+      <div className="relative z-10 flex md:hidden items-center justify-between px-5 pb-3 gap-3">
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <div className="relative w-8 h-8 rounded-xl bg-base-200 shadow-sm p-1">
             <Image alt="Hacked Wallet Recovery logo" fill src={logoSrc} />
@@ -65,6 +62,13 @@ export function TopRightConnect() {
         <div className="flex items-center gap-2">
           <RainbowKitCustomConnectButton />
           {isLocalNetwork && <FaucetButton />}
+        </div>
+      </div>
+
+      {/* Progress track: below mobile header row, centered on desktop */}
+      <div className="relative z-10 w-full flex justify-center px-5 py-3">
+        <div className="w-full max-w-2xl">
+          <div className="pt-1">{showTrack ? <StepTrack step={step} /> : null}</div>
         </div>
       </div>
     </div>

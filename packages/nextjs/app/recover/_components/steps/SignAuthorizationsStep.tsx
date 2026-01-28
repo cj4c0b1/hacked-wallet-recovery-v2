@@ -151,7 +151,7 @@ export function SignAuthorizationsStep(props: {
   const canContinue = Boolean(authorizationsByChainId);
 
   return (
-    <div className="bg-base-100 rounded-3xl p-8 border border-base-300 space-y-6">
+    <div className="bg-base-100 rounded-3xl p-5 sm:p-8 border border-base-300 space-y-6">
       <div>
         <h2 className="text-2xl font-bold m-0">Enter private key</h2>
         <p className="mt-2 text-sm text-neutral">

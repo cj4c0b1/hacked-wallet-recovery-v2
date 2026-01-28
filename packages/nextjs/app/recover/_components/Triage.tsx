@@ -77,7 +77,7 @@ export function Triage(props: {
 
   return (
     <div className="space-y-4">
-      <div className="bg-base-100 rounded-3xl p-6 border border-base-300">
+      <div className="bg-base-100 rounded-3xl p-5 sm:p-6 border border-base-300">
         <h2 className="text-xl font-bold mb-2">1) Triage</h2>
         <p className="text-sm text-neutral mb-4">
           Enter the compromised wallet and the destination safe wallet. We’ll scan (or you can manually add) assets on{" "}
@@ -116,7 +116,7 @@ export function Triage(props: {
         {scanError ? <div className="mt-3 text-sm text-error break-words">{scanError}</div> : null}
       </div>
 
-      <div className="bg-base-100 rounded-3xl p-6 border border-base-300">
+      <div className="bg-base-100 rounded-3xl p-5 sm:p-6 border border-base-300">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-lg font-bold">Assets ({totalRows})</h3>
           <div className="text-xs text-neutral">MVP: local-only; scanning may be empty.</div>
