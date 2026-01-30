@@ -238,7 +238,7 @@ const externalContracts = {
   //     abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
   //   },
   // },
-  // Ethereum
+  // Ethereum: Public mempool, we use the flashbots RPC
   1: {
     UniversalRecoveryDelegate: {
       address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
@@ -246,7 +246,7 @@ const externalContracts = {
     },
   },
 
-  // Optimism
+  // Optimism: No public mempool
   10: {
     UniversalRecoveryDelegate: {
       address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
@@ -254,7 +254,7 @@ const externalContracts = {
     },
   },
 
-  // BSC
+  // BSC: Public mempool, we use the blinklabs RPC
   56: {
     UniversalRecoveryDelegate: {
       address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
@@ -262,7 +262,7 @@ const externalContracts = {
     },
   },
 
-  // Gnosis
+  // Gnosis: Public mempool, we use Shutterized RPC
   100: {
     UniversalRecoveryDelegate: {
       address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
@@ -270,7 +270,7 @@ const externalContracts = {
     },
   },
 
-  // Unichain
+  // Unichain: no public mempool
   130: {
     UniversalRecoveryDelegate: {
       address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
@@ -278,15 +278,15 @@ const externalContracts = {
     },
   },
 
-  // Polygon
-  137: {
-    UniversalRecoveryDelegate: {
-      address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
-      abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
-    },
-  },
+  // Polygon: Public mempool, no encrypted mempool solution
+  // 137: {
+  //   UniversalRecoveryDelegate: {
+  //     address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
+  //     abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
+  //   },
+  // },
 
-  // Monad
+  // Monad: no public mempool
   143: {
     UniversalRecoveryDelegate: {
       address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
@@ -294,7 +294,7 @@ const externalContracts = {
     },
   },
 
-  // // Sonic: Did not succeed
+  // // Sonic: Public mempool, no encrypted mempool solution
   // 146: {
   //   UniversalRecoveryDelegate: {
   //     address: "0x90b0f446179b4c61566FB41f50e45E75fDa92861",
@@ -302,7 +302,7 @@ const externalContracts = {
   //   },
   // },
 
-  // World
+  // World: no public mempool
   480: {
     UniversalRecoveryDelegate: {
       address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
@@ -310,27 +310,27 @@ const externalContracts = {
     },
   },
 
-  // Stable
-  988: {
-    UniversalRecoveryDelegate: {
-      address: "0xD81891650795D8BA695aDF2Fd8018A3DB5d8D52b",
-      abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
-    },
-    Create2Factory: {
-      address: "0x4E32B2200B4C2cA464e05e87501271cEf739c2E8",
-      abi: CREATE2_FACTORY_ABI,
-    },
-  },
+  // Stable: Can subscribe to transactions
+  // 988: {
+  //   UniversalRecoveryDelegate: {
+  //     address: "0xD81891650795D8BA695aDF2Fd8018A3DB5d8D52b",
+  //     abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
+  //   },
+  //   Create2Factory: {
+  //     address: "0x4E32B2200B4C2cA464e05e87501271cEf739c2E8",
+  //     abi: CREATE2_FACTORY_ABI,
+  //   },
+  // },
 
-  // HyperEVM
-  999: {
-    UniversalRecoveryDelegate: {
-      address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
-      abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
-    },
-  },
+  // HyperEVM: Public mempool, no encrypted mempool solution
+  // 999: {
+  //   UniversalRecoveryDelegate: {
+  //     address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
+  //     abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
+  //   },
+  // },
 
-  // Soneium
+  // Soneium: no public mempool
   1868: {
     UniversalRecoveryDelegate: {
       address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
@@ -338,7 +338,7 @@ const externalContracts = {
     },
   },
 
-  // Ronin
+  // Ronin: no public mempool
   2020: {
     UniversalRecoveryDelegate: {
       address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
@@ -346,7 +346,7 @@ const externalContracts = {
     },
   },
 
-  // Mantle
+  // Mantle: no public mempool
   5000: {
     UniversalRecoveryDelegate: {
       address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
@@ -354,7 +354,7 @@ const externalContracts = {
     },
   },
 
-  // Base
+  // Base: no public mempool
   8453: {
     UniversalRecoveryDelegate: {
       address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
@@ -362,7 +362,7 @@ const externalContracts = {
     },
   },
 
-  // Arbitrum
+  // Arbitrum: no public mempool
   42161: {
     UniversalRecoveryDelegate: {
       address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
@@ -370,15 +370,15 @@ const externalContracts = {
     },
   },
 
-  // Celo
-  42220: {
-    UniversalRecoveryDelegate: {
-      address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
-      abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
-    },
-  },
+  // Celo: Unknown
+  // 42220: {
+  //   UniversalRecoveryDelegate: {
+  //     address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
+  //     abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
+  //   },
+  // },
 
-  // Avalanche
+  // Avalanche: no public mempool
   43114: {
     UniversalRecoveryDelegate: {
       address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
@@ -386,19 +386,19 @@ const externalContracts = {
     },
   },
 
-  // Zircuit
-  48900: {
-    UniversalRecoveryDelegate: {
-      address: "0xD81891650795D8BA695aDF2Fd8018A3DB5d8D52b",
-      abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
-    },
-    Create2Factory: {
-      address: "0x4E32B2200B4C2cA464e05e87501271cEf739c2E8",
-      abi: CREATE2_FACTORY_ABI,
-    },
-  },
+  // Zircuit: Public mempool, no encrypted mempool solution
+  // 48900: {
+  //   UniversalRecoveryDelegate: {
+  //     address: "0xD81891650795D8BA695aDF2Fd8018A3DB5d8D52b",
+  //     abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
+  //   },
+  //   Create2Factory: {
+  //     address: "0x4E32B2200B4C2cA464e05e87501271cEf739c2E8",
+  //     abi: CREATE2_FACTORY_ABI,
+  //   },
+  // },
 
-  // Ink
+  // Ink: no public mempool
   57073: {
     UniversalRecoveryDelegate: {
       address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
@@ -406,15 +406,15 @@ const externalContracts = {
     },
   },
 
-  // // Blast: Did not succeed
-  // 81457: {
-  //   UniversalRecoveryDelegate: {
-  //     address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
-  //     abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
-  //   },
-  // },
+  // // Blast: no public mempool
+  81457: {
+    UniversalRecoveryDelegate: {
+      address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
+      abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
+    },
+  },
 
-  // Katana
+  // Katana: no public mempool
   747474: {
     UniversalRecoveryDelegate: {
       address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
@@ -422,7 +422,7 @@ const externalContracts = {
     },
   },
 
-  // Zora
+  // Zora: no public mempool
   7777777: {
     UniversalRecoveryDelegate: {
       address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",

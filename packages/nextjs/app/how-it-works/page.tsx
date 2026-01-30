@@ -95,27 +95,21 @@ const HowItWorksPage: NextPage = () => {
             <h3 className="text-base font-bold m-0">What data is sent to the server</h3>
             <ul className="mt-3 text-sm text-neutral space-y-2 list-disc list-inside">
               <li>
-                <span className="font-semibold">Asset discovery</span>: we send{" "}
-                <span className="font-mono">compromisedAddress</span> to{" "}
-                <span className="font-mono">POST /api/scan</span>.
+                <span className="font-semibold">Asset discovery</span>: we look up the wallet’s portfolio using{" "}
+                <span className="font-semibold">Zerion</span> so you can review and select which assets to recover.
               </li>
               <li>
-                <span className="font-semibold">Quoting</span>: we send <span className="font-mono">safeAddress</span>,{" "}
-                the selected <span className="font-mono">assets</span>, and per-chain{" "}
-                <span className="font-mono">authorizationsByChainId</span> to{" "}
-                <span className="font-mono">POST /api/quote</span>.
+                <span className="font-semibold">Quote + recovery plan</span>: based on the assets you selected and the
+                networks involved, we compute expected execution costs and the service fee.
               </li>
               <li>
-                <span className="font-semibold">Execution</span>: we send the same{" "}
-                <span className="font-mono">assets</span> + <span className="font-mono">authorizationsByChainId</span>,{" "}
-                plus your fee payment tx hash (<span className="font-mono">paymentTxHash</span>) to{" "}
-                <span className="font-mono">POST /api/execute</span>.
+                <span className="font-semibold">Execution</span>: after your payment is confirmed, our{" "}
+                <span className="font-semibold">paymaster</span> broadcasts the recovery transactions. On networks that
+                require it (or where it materially improves success), we route submission through{" "}
+                <span className="font-semibold">private/encrypted mempool RPCs</span> to reduce interference (e.g. nonce
+                racing by the hacker).
               </li>
             </ul>
-            <p className="mt-3 text-xs text-neutral leading-relaxed">
-              None of these requests include your private key. The authorizations are signatures that can be verified{" "}
-              and used without revealing the key.
-            </p>
           </div>
 
           <div className="mt-4 rounded-2xl border border-base-300 p-5">
@@ -123,9 +117,16 @@ const HowItWorksPage: NextPage = () => {
             <p className="mt-3 text-sm text-neutral leading-relaxed">
               The recovery uses <span className="font-semibold">EIP-7702</span> authorizations. Your compromised EOA{" "}
               signs an authorization (in your browser) that delegates execution to a recovery contract called{" "}
-              <span className="font-mono">UniversalRecoveryDelegate</span>. Our server then broadcasts an{" "}
-              <span className="font-semibold">EIP-7702</span> transaction that executes a batch of transfers to the safe
-              address.
+              <a
+                href="https://github.com/buidlguidl/hacked-wallet-recovery-v2/blob/main/packages/foundry/contracts/UniversalRecoveryDelegate.sol"
+                className="link"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span className="font-mono">UniversalRecoveryDelegate</span>
+              </a>
+              . Our server then broadcasts an <span className="font-semibold">EIP-7702</span> transaction that executes
+              a batch of transfers to the safe address.
             </p>
             <p className="mt-3 text-sm text-neutral leading-relaxed">
               The server uses a paymaster to send the signed authorizations. This is why you pay a fee first: the
