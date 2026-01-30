@@ -76,7 +76,22 @@ function GroupCard(props: {
   const selectable = Boolean(props.selectable && props.onToggleKey && props.selectedKeys);
   const showHeader = props.showHeader ?? true;
 
-  const selectableKeys = g.rows.map(tokenKeyForRow).filter((x): x is string => Boolean(x));
+  const rows = (() => {
+    const base = Array.isArray(g.rows) ? g.rows : [];
+    return base
+      .map((row, originalIndex) => {
+        const supported = !row.chainId || SUPPORTED_CHAIN_IDS.has(row.chainId);
+        return { row, supported, originalIndex };
+      })
+      .sort((a, b) => {
+        // Supported networks first; preserve original ordering otherwise.
+        const d = Number(b.supported) - Number(a.supported);
+        return d !== 0 ? d : a.originalIndex - b.originalIndex;
+      })
+      .map(x => x.row);
+  })();
+
+  const selectableKeys = rows.map(tokenKeyForRow).filter((x): x is string => Boolean(x));
   const selectedCount = selectable ? selectableKeys.filter(k => props.selectedKeys!.has(k)).length : 0;
   const totalSelectable = selectable ? selectableKeys.length : 0;
 
@@ -135,7 +150,7 @@ function GroupCard(props: {
               </tr>
             </thead>
             <tbody>
-              {g.rows.map(row => (
+              {rows.map(row => (
                 <tr
                   key={row.id}
                   className={

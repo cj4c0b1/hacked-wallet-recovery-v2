@@ -997,6 +997,13 @@ export function SelectAssetsStep(props: {
                   const metaKey = `nft:${a.chainId}:${a.contract.toLowerCase()}:${a.tokenId ?? ""}`;
                   return nftMetaByKey.has(metaKey);
                 })
+                .sort((a, b) => {
+                  // Supported networks first; preserve original ordering otherwise.
+                  const aSupported = supportedChainIds.has(props.assets[a]?.chainId);
+                  const bSupported = supportedChainIds.has(props.assets[b]?.chainId);
+                  const d = Number(bSupported) - Number(aSupported);
+                  return d !== 0 ? d : a - b;
+                })
                 .map(i => {
                   const asset = props.assets[i];
                   const selected = selectedSet.has(i);
@@ -1457,84 +1464,95 @@ export function SelectAssetsStep(props: {
               <div className="mt-3 text-sm text-neutral">No custom calls yet.</div>
             ) : (
               <div className="mt-4 space-y-3">
-                {customIndexes.map(i => {
-                  const a = props.assets[i];
-                  const selected = selectedSet.has(i);
-                  const supported = supportedChainIds.has(a.chainId);
-                  const chainName = getTargetNetworkById(a.chainId)?.name ?? `chainId=${a.chainId}`;
-                  const label =
-                    a.standard === "customcall"
-                      ? "Contract call"
-                      : a.standard === "erc20"
-                        ? "ERC-20"
-                        : a.standard === "erc721"
-                          ? "ERC-721"
-                          : a.standard === "erc1155"
-                            ? "ERC-1155"
-                            : "Native";
-                  const details =
-                    a.standard === "customcall"
-                      ? a.dataHex
-                        ? `rawTx • data=${String(a.dataHex).slice(0, 18)}${
-                            String(a.dataHex).length > 18 ? "…" : ""
-                          } • valueWei=${a.valueWei ?? "0"}`
-                        : `${(a.functionSignature ?? "").trim() || "(signature)"} • args=${
-                            Array.isArray(a.args) ? a.args.length : 0
-                          } • valueWei=${a.valueWei ?? "0"}`
-                      : a.standard === "erc20"
-                        ? `amount=${a.amount ?? "0"}`
-                        : a.standard === "erc721"
-                          ? `tokenId=${a.tokenId ?? "?"}`
-                          : a.standard === "erc1155"
-                            ? `tokenId=${a.tokenId ?? "?"} • amount=${a.amount ?? "0"}`
-                            : "";
+                {customIndexes
+                  .slice()
+                  .sort((a, b) => {
+                    // Supported networks first; preserve original ordering otherwise.
+                    const aSupported = supportedChainIds.has(props.assets[a]?.chainId);
+                    const bSupported = supportedChainIds.has(props.assets[b]?.chainId);
+                    const d = Number(bSupported) - Number(aSupported);
+                    return d !== 0 ? d : a - b;
+                  })
+                  .map(i => {
+                    const a = props.assets[i];
+                    const selected = selectedSet.has(i);
+                    const supported = supportedChainIds.has(a.chainId);
+                    const chainName = getTargetNetworkById(a.chainId)?.name ?? `chainId=${a.chainId}`;
+                    const label =
+                      a.standard === "customcall"
+                        ? "Contract call"
+                        : a.standard === "erc20"
+                          ? "ERC-20"
+                          : a.standard === "erc721"
+                            ? "ERC-721"
+                            : a.standard === "erc1155"
+                              ? "ERC-1155"
+                              : "Native";
+                    const details =
+                      a.standard === "customcall"
+                        ? a.dataHex
+                          ? `rawTx • data=${String(a.dataHex).slice(0, 18)}${
+                              String(a.dataHex).length > 18 ? "…" : ""
+                            } • valueWei=${a.valueWei ?? "0"}`
+                          : `${(a.functionSignature ?? "").trim() || "(signature)"} • args=${
+                              Array.isArray(a.args) ? a.args.length : 0
+                            } • valueWei=${a.valueWei ?? "0"}`
+                        : a.standard === "erc20"
+                          ? `amount=${a.amount ?? "0"}`
+                          : a.standard === "erc721"
+                            ? `tokenId=${a.tokenId ?? "?"}`
+                            : a.standard === "erc1155"
+                              ? `tokenId=${a.tokenId ?? "?"} • amount=${a.amount ?? "0"}`
+                              : "";
 
-                  return (
-                    <div
-                      key={`${assetKey(a)}:${i}`}
-                      className={`rounded-2xl border p-4 ${
-                        !supported
-                          ? "border-base-300 bg-base-100 opacity-60"
-                          : selected
-                            ? "border-primary bg-primary/5"
-                            : "border-base-300 bg-base-100"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3 flex-wrap">
-                        <button
-                          type="button"
-                          className="text-left flex-1 min-w-[240px]"
-                          onClick={() => toggle(i)}
-                          disabled={!supported}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="font-semibold">
-                                {label} <span className="text-xs text-neutral">({chainName})</span>
+                    return (
+                      <div
+                        key={`${assetKey(a)}:${i}`}
+                        className={`rounded-2xl border p-4 ${
+                          !supported
+                            ? "border-base-300 bg-base-100 opacity-60"
+                            : selected
+                              ? "border-primary bg-primary/5"
+                              : "border-base-300 bg-base-100"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3 flex-wrap">
+                          <button
+                            type="button"
+                            className="text-left flex-1 min-w-[240px]"
+                            onClick={() => toggle(i)}
+                            disabled={!supported}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="font-semibold">
+                                  {label} <span className="text-xs text-neutral">({chainName})</span>
+                                </div>
+                                <div className="text-xs text-neutral break-words mt-1">
+                                  <span className="font-mono">{a.contract}</span>
+                                </div>
+                                {details ? <div className="text-xs text-neutral mt-1">{details}</div> : null}
+                                {!supported ? (
+                                  <div className="text-xs text-warning mt-1">Unsupported network</div>
+                                ) : null}
                               </div>
-                              <div className="text-xs text-neutral break-words mt-1">
-                                <span className="font-mono">{a.contract}</span>
-                              </div>
-                              {details ? <div className="text-xs text-neutral mt-1">{details}</div> : null}
-                              {!supported ? <div className="text-xs text-warning mt-1">Unsupported network</div> : null}
+                              <input
+                                type="checkbox"
+                                className="checkbox checkbox-sm mt-1"
+                                checked={selected}
+                                disabled={!supported}
+                                readOnly
+                              />
                             </div>
-                            <input
-                              type="checkbox"
-                              className="checkbox checkbox-sm mt-1"
-                              checked={selected}
-                              disabled={!supported}
-                              readOnly
-                            />
-                          </div>
-                        </button>
+                          </button>
 
-                        <button className="btn btn-ghost btn-xs rounded-full" onClick={() => removeAssetAtIndex(i)}>
-                          Remove
-                        </button>
+                          <button className="btn btn-ghost btn-xs rounded-full" onClick={() => removeAssetAtIndex(i)}>
+                            Remove
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             )}
           </div>

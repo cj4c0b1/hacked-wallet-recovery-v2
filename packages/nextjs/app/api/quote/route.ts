@@ -23,6 +23,15 @@ import { getChain, getRpcUrl } from "~~/utils/recovery/viemServer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
+// Important: Node fetch has no default timeout; one bad/slow RPC can hang the whole endpoint.
+const RPC_TIMEOUT_MS = 12_000;
+
+function rpcTransport(rpcUrl: string) {
+  // viem http transport supports `timeout` but types can lag behind across versions.
+  return http(rpcUrl, { timeout: RPC_TIMEOUT_MS } as any);
+}
 
 function mkLogPrefix(reqId: string) {
   return `[hwr.quote ${reqId}]`;
@@ -177,7 +186,7 @@ export async function POST(req: Request) {
         const rpcUrl = getRpcUrl(chainId);
         const chain = getChain(chainId, rpcUrl);
         const delegate = getDelegateForChain(chainId);
-        const publicClient = createPublicClient({ chain, transport: http(rpcUrl) });
+        const publicClient = createPublicClient({ chain, transport: rpcTransport(rpcUrl) });
         console.info(chainLogp, "config", { rpcUrl, delegate: delegate.address });
 
         // Collect minimal info needed for the UI.
@@ -663,7 +672,7 @@ export async function POST(req: Request) {
       try {
         const paymentRpcUrl = getRpcUrl(paymentChainId);
         const paymentChain = getChain(paymentChainId, paymentRpcUrl);
-        const paymentClient = createPublicClient({ chain: paymentChain, transport: http(paymentRpcUrl) });
+        const paymentClient = createPublicClient({ chain: paymentChain, transport: rpcTransport(paymentRpcUrl) });
         const erc20MetaAbi = parseAbi(["function decimals() view returns (uint8)"]);
         const d = (await paymentClient
           .readContract({ address: paymentTokenAddress, abi: erc20MetaAbi, functionName: "decimals" })

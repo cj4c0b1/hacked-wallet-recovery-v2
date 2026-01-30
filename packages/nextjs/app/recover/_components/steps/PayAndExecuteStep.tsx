@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import type { AuthorizationsByChainId } from "../authorizations";
 import type { RecoveryAsset } from "../types";
 import { Address, AddressInput, EtherInput } from "@scaffold-ui/components";
@@ -16,6 +17,16 @@ import { safeJsonStringify } from "~~/utils/recovery/jsonSafe";
 import { sign7702Authorization } from "~~/utils/recovery/viem7702";
 import type { ZerionNftView, ZerionPositionsView, ZerionPositionsViewRow } from "~~/utils/recovery/zerion";
 import { type ChainWithAttributes, NETWORKS_EXTRA_DATA, getTargetNetworkById } from "~~/utils/scaffold-eth/networks";
+
+const CHAIN_ICON_EXT_BY_ID: Partial<Record<number, "svg" | "png" | "jpg" | "webp">> = {
+  // AmiChain icon set only has PNG for this chainId (as of 2026-01-30).
+  1868: "png",
+};
+
+function chainIconSrc(chainId: number): string {
+  const ext = CHAIN_ICON_EXT_BY_ID[chainId] ?? "svg";
+  return `/chains/${chainId}.${ext}`;
+}
 
 function asBigInt(v: unknown): bigint | null {
   try {
@@ -1391,25 +1402,25 @@ export function PayAndExecuteStep(props: {
                             <div className="text-[11px] text-neutral">Balance: {fmtUsd(r.balanceUsd)}</div>
                           </div>
                         </div>
-                        <div className="flex flex-wrap justify-end gap-2">
+                        <div className="flex flex-wrap justify-end gap-x-0 gap-y-0">
                           {r.networks.map(n => {
-                            const color = NETWORKS_EXTRA_DATA[n.chainId]?.color;
-                            const border = Array.isArray(color)
-                              ? color[0]
-                              : typeof color === "string"
-                                ? color
-                                : "oklch(var(--p))";
                             return (
                               <button
                                 key={`${r.key}:${n.chainId}`}
-                                className="btn btn-xs rounded-full"
-                                style={{ borderColor: border, borderWidth: 2 }}
+                                className="btn btn-ghost btn-xs rounded-full w-8 h-8 p-0 flex items-center justify-center"
                                 onClick={() => payWithSelection(n.chainId, n.asset)}
                                 disabled={paymentModalBusy || sendTx.isPending}
                                 type="button"
                                 title={`Pay on ${n.chainName}`}
+                                aria-label={`Pay on ${n.chainName}`}
                               >
-                                <span className="max-w-[10rem] truncate">{n.chainName}</span>
+                                <Image
+                                  src={chainIconSrc(n.chainId)}
+                                  alt=""
+                                  width={18}
+                                  height={18}
+                                  className="rounded-full"
+                                />
                               </button>
                             );
                           })}

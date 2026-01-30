@@ -371,12 +371,12 @@ const externalContracts = {
   },
 
   // Celo: Unknown
-  // 42220: {
-  //   UniversalRecoveryDelegate: {
-  //     address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
-  //     abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
-  //   },
-  // },
+  42220: {
+    UniversalRecoveryDelegate: {
+      address: "0x681BcBC1fBc1c8A2f1F5b4A43e6D38c5CA220892",
+      abi: UNIVERSAL_RECOVERY_DELEGATE_ABI,
+    },
+  },
 
   // Avalanche: no public mempool
   43114: {

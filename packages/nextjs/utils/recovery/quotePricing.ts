@@ -41,6 +41,16 @@ type CachedPlatform = { platformId: string | null; nativeCoinId: string | null; 
 const platformCacheByChainId = new Map<number, CachedPlatform>();
 const PLATFORM_TTL_MS = 24 * 60 * 60_000;
 
+const DEFAULT_COINGECKO_TIMEOUT_MS = 8_000;
+
+function coingeckoTimeoutMs(): number {
+  const raw = process.env.COINGECKO_TIMEOUT_MS ?? process.env.CG_TIMEOUT_MS;
+  const n = raw && raw.trim() ? Number(raw) : DEFAULT_COINGECKO_TIMEOUT_MS;
+  // Guard rails: keep it bounded so we don't hang serverless functions.
+  if (!Number.isFinite(n)) return DEFAULT_COINGECKO_TIMEOUT_MS;
+  return Math.max(1_000, Math.min(30_000, Math.floor(n)));
+}
+
 function cgHeaders(): Record<string, string> {
   const key = process.env.COINGECKO_API_KEY || process.env.CG_API_KEY;
   // CoinGecko supports API key headers on some plans; keep best-effort and allow anonymous for dev.
@@ -142,30 +152,22 @@ export function coingeckoPlatformForChainId(chainId: number): string | null {
     case 31337:
       return null;
     case 1:
-    case 11155111:
       return "ethereum";
     case 10:
-    case 11155420:
       return "optimistic-ethereum";
     case 42161:
-    case 421614:
       return "arbitrum-one";
     case 8453:
-    case 84532:
       return "base";
     case 137:
-    case 80002:
       return "polygon-pos";
     case 100:
       return "xdai";
     case 130: // Unichain (likely on CoinGecko; otherwise resolved via /asset_platforms)
     case 143: // Monad
-    case 146: // Sonic
     case 480: // World
     case 988: // Stable
-    case 999: // HyperEVM
     case 1868: // Soneium
-    case 48900: // Zircuit
     case 57073: // Ink
     case 81457: // Blast
     case 747474: // Katana
@@ -187,7 +189,9 @@ export function coingeckoPlatformForChainId(chainId: number): string | null {
 }
 
 async function fetchJson(url: string): Promise<any> {
-  const res = await fetch(url, { headers: cgHeaders() });
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), coingeckoTimeoutMs());
+  const res = await fetch(url, { headers: cgHeaders(), signal: controller.signal }).finally(() => clearTimeout(t));
   if (!res.ok) throw new Error(`CoinGecko HTTP ${res.status}`);
   return await res.json();
 }
