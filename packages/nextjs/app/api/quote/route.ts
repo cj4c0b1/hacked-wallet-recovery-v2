@@ -17,7 +17,6 @@ import {
 } from "~~/utils/recovery/quotePricing";
 import { rateLimit } from "~~/utils/recovery/rateLimit";
 import { decodeRevertData } from "~~/utils/recovery/revert";
-import { getServiceFeeUsdMicros } from "~~/utils/recovery/serviceFee";
 import { requireAddress, requireHex, requireNumber, requireObject } from "~~/utils/recovery/validation";
 import { getChain, getRpcUrl } from "~~/utils/recovery/viemServer";
 
@@ -133,7 +132,8 @@ export async function POST(req: Request) {
     const paymaster = paymasterAccount.address;
     console.info(logp, "paymaster", { paymaster });
 
-    const serviceFeeUsdMicros = getServiceFeeUsdMicros();
+    // We do not charge a separate "service fee" line item. Instead we bake a buffer into gas estimates.
+    const serviceFeeUsdMicros = 0n;
 
     const requestedAssetsWithIndex = assets.map((asset, index) => ({ index, asset }));
     const requestedAssetsHash = canonicalAssetsHash(assets);
@@ -608,9 +608,13 @@ export async function POST(req: Request) {
 
     const MIN_CHAIN_USD_MICROS = 10_000n; // $0.01
     let sponsorGasUsdMicros = 0n;
+    let sponsorGasUsdMicrosWithMarkup = 0n;
     let pricingComplete = true;
     const nativeUsdMicrosByChainId: Record<number, string> = {};
     const gasCostUsdMicrosByChainId: Record<number, string> = {};
+
+    const markupBpsRaw = process.env.RECOVERY_MARKUP_BPS ? Number(process.env.RECOVERY_MARKUP_BPS) : 3000; // 30%
+    const markupBps = Number.isFinite(markupBpsRaw) && markupBpsRaw >= 0 ? Math.floor(markupBpsRaw) : 3000;
 
     for (const c of perChain as any[]) {
       const cid = typeof c?.chainId === "number" ? c.chainId : Number(c?.chainId);
@@ -636,17 +640,16 @@ export async function POST(req: Request) {
       // Floor to $0.01 per chain whenever gasCostWei > 0, even if integer micros rounding yields 0.
       const chainUsdMicrosFloored =
         gasCostWei > 0n && chainUsdMicros < MIN_CHAIN_USD_MICROS ? MIN_CHAIN_USD_MICROS : chainUsdMicros;
-      gasCostUsdMicrosByChainId[cid] = chainUsdMicrosFloored.toString();
+      const chainUsdMicrosWithMarkup = (chainUsdMicrosFloored * BigInt(10_000 + markupBps) + 9_999n) / 10_000n;
+      // Expose per-chain estimates already including the markup (no separate service fee line).
+      gasCostUsdMicrosByChainId[cid] = chainUsdMicrosWithMarkup.toString();
       sponsorGasUsdMicros += chainUsdMicrosFloored;
+      sponsorGasUsdMicrosWithMarkup += chainUsdMicrosWithMarkup;
     }
-
-    const markupBpsRaw = process.env.RECOVERY_MARKUP_BPS ? Number(process.env.RECOVERY_MARKUP_BPS) : 1000; // 10%
-    const markupBps = Number.isFinite(markupBpsRaw) && markupBpsRaw >= 0 ? Math.floor(markupBpsRaw) : 1000;
-    const sponsorGasUsdMicrosWithMarkup = (sponsorGasUsdMicros * BigInt(10_000 + markupBps) + 9_999n) / 10_000n;
 
     // Always round up to at least $0.01 so we never quote $0.00.
     const MIN_TOTAL_USD_MICROS = 10_000n; // $0.01
-    const totalUsdMicrosRaw = serviceFeeUsdMicros + sponsorGasUsdMicrosWithMarkup;
+    const totalUsdMicrosRaw = sponsorGasUsdMicrosWithMarkup;
     const totalUsdMicros = totalUsdMicrosRaw < MIN_TOTAL_USD_MICROS ? MIN_TOTAL_USD_MICROS : totalUsdMicrosRaw;
 
     const paymentNativeUsdMicros = await getNativeUsdMicrosPerToken(paymentChainId);

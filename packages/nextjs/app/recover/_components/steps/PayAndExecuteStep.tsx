@@ -482,7 +482,7 @@ export function PayAndExecuteStep(props: {
   const canExecute = Boolean(paymentChainId && sendTx.data && paymentReceipt.data?.status === "success");
 
   type EstimateRow = {
-    kind: "chain" | "service";
+    kind: "chain";
     id: string;
     chainId: number | null;
     chainName: string;
@@ -522,11 +522,19 @@ export function PayAndExecuteStep(props: {
       const symbol = meta?.nativeCurrency?.symbol ?? "ETH";
       const decimals = meta?.nativeCurrency?.decimals ?? 18;
 
+      const markupBpsRaw = quote?.quote?.markupBps;
+      const markupBpsNum = typeof markupBpsRaw === "number" ? markupBpsRaw : Number(markupBpsRaw ?? 0);
+      const markupBps = Number.isFinite(markupBpsNum) && markupBpsNum >= 0 ? Math.floor(markupBpsNum) : 0;
+
+      // Display the per-chain gas estimate including the markup for gas cost movement.
+      const gasCostWeiForDisplay =
+        typeof gasCostWei === "bigint" ? (gasCostWei * BigInt(10_000 + markupBps) + 9_999n) / 10_000n : null;
+
       const gasNative =
-        gasCostWei != null
+        gasCostWeiForDisplay != null
           ? (() => {
               try {
-                return Number(formatUnits(gasCostWei, decimals));
+                return Number(formatUnits(gasCostWeiForDisplay, decimals));
               } catch {
                 return null;
               }
@@ -552,25 +560,6 @@ export function PayAndExecuteStep(props: {
         revertName,
         revertSummary,
       };
-    });
-
-    const serviceFeeUsd = usdFromMicros(quote?.quote?.serviceFeeUsdMicros);
-    rows.push({
-      kind: "service",
-      id: "service_fee",
-      chainId: null,
-      chainName: "Service fee",
-      assetCountOriginal: 0,
-      assetCountExecutable: 0,
-      symbol: null,
-      gasNative: null,
-      gasCostWei: null,
-      usd: serviceFeeUsd,
-      paymasterBalWei: null,
-      error: null,
-      rpcUrl: null,
-      revertName: null,
-      revertSummary: null,
     });
 
     const totalUsd = usdFromMicros(quote?.quote?.totalUsdMicros);
@@ -1155,9 +1144,7 @@ export function PayAndExecuteStep(props: {
                                     </div>
 
                                     <div className="text-right shrink-0">
-                                      {r.kind === "service" ? (
-                                        <div className="text-sm font-mono">{fmtUsd(r.usd)}</div>
-                                      ) : r.assetCountExecutable === 0 ? (
+                                      {r.assetCountExecutable === 0 ? (
                                         <>
                                           <div className="text-sm font-mono">0 {r.symbol ?? "ETH"}</div>
                                           <div className="text-xs text-neutral">{fmtUsd(0)}</div>
