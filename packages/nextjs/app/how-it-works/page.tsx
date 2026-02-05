@@ -76,11 +76,12 @@ const HowItWorksPage: NextPage = () => {
               assets will be sent.
             </li>
             <li>
-              <span className="font-semibold">We compute a quote.</span> It includes a service fee and estimated{" "}
-              execution costs for the networks you’re recovering from.
+              <span className="font-semibold">We compute a quote.</span> It includes the estimated gas cost for the{" "}
+              recovery transactions on the networks you’re recovering from with a little buffer to account for gas price{" "}
+              fluctuations.
             </li>
             <li>
-              <span className="font-semibold">You pay the quoted fee from your safe wallet.</span> This is a normal
+              <span className="font-semibold">You pay the quoted gas fees from your safe wallet.</span> This is a normal
               onchain payment that you approve in your wallet.
             </li>
             <li>
@@ -100,7 +101,7 @@ const HowItWorksPage: NextPage = () => {
               </li>
               <li>
                 <span className="font-semibold">Quote + recovery plan</span>: based on the assets you selected and the
-                networks involved, we compute expected execution costs and the service fee.
+                networks involved, we compute expected execution costs.
               </li>
               <li>
                 <span className="font-semibold">Execution</span>: after your payment is confirmed, our{" "}
@@ -129,7 +130,7 @@ const HowItWorksPage: NextPage = () => {
               a batch of transfers to the safe address.
             </p>
             <p className="mt-3 text-sm text-neutral leading-relaxed">
-              The server uses a paymaster to send the signed authorizations. This is why you pay a fee first: the
+              The server uses a paymaster to send the signed authorizations. This is why you pay gas fees first: the
               paymaster covers the execution costs on the destination chains.
             </p>
           </div>

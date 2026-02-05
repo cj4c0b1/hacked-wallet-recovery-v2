@@ -1236,8 +1236,8 @@ export function PayAndExecuteStep(props: {
                                 <div className="text-sm font-mono">{fmtUsd(estimateRows.totalUsd)}</div>
                               </div>
                               <div className="text-[11px] text-neutral mt-1">
-                                Total due includes service fee + estimated cross-chain execution costs (converted to ETH
-                                at quote time).
+                                Total due includes the estimated gas costs across all networks (in USD) plus a little
+                                buffer to account for gas price fluctuations.
                               </div>
                             </div>
                           </div>
@@ -1318,7 +1318,7 @@ export function PayAndExecuteStep(props: {
               <div className="text-xs text-neutral">
                 {paymentReceipt.data?.status === "success"
                   ? "Payment confirmed. Broadcasting recovery transactions…"
-                  : "Pay the fees to finalize the recovery"}
+                  : "Pay the gas fees to finalize the recovery"}
               </div>
             )}
 

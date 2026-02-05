@@ -64,10 +64,10 @@ export function Execute(props: {
   return (
     <div className="space-y-4">
       <div className="bg-base-100 rounded-3xl p-5 sm:p-6 border border-base-300">
-        <h2 className="text-xl font-bold mb-2">4) Pay fee + Execute (server)</h2>
+        <h2 className="text-xl font-bold mb-2">4) Pay gas + Execute (server)</h2>
         <p className="text-sm text-neutral">
-          You pay a fee from the connected safe wallet, then the server verifies it and broadcasts the sponsored
-          EIP-7702 transaction(s).
+          You pay the gas fees from the connected safe wallet, then the server verifies it and broadcasts the sponsored
+          EIP-7702 transaction(s) on each network you&apos;re recovering from.
         </p>
       </div>
 
@@ -78,7 +78,7 @@ export function Execute(props: {
           <span className="ml-2 text-xs text-neutral">({chain?.name ?? "Unknown network"})</span>
         </div>
 
-        <div className="text-sm font-semibold">Service fee (ETH)</div>
+        <div className="text-sm font-semibold">Fee to cover gas costs (ETH)</div>
         <EtherInput
           placeholder="0.001"
           onValueChange={({ valueInEth }) => setFeeEth(valueInEth)}
@@ -94,7 +94,7 @@ export function Execute(props: {
           }}
         >
           {sendTx.isPending ? <span className="loading loading-spinner loading-sm" /> : null}
-          Send fee
+          Send gas fees
         </button>
 
         {sendTx.error ? <div className="text-sm text-error break-words">{sendTx.error.message}</div> : null}
