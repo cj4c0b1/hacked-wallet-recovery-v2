@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
-import { createPublicClient, decodeErrorResult, http, parseAbi } from "viem";
+import { createPublicClient, decodeErrorResult, fallback, http, parseAbi } from "viem";
 import type { Address, Authorization, Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { recoverAuthorizationAddress } from "viem/utils";
@@ -18,18 +18,36 @@ import {
 import { rateLimit } from "~~/utils/recovery/rateLimit";
 import { decodeRevertData } from "~~/utils/recovery/revert";
 import { requireAddress, requireHex, requireNumber, requireObject } from "~~/utils/recovery/validation";
-import { getChain, getRpcUrl } from "~~/utils/recovery/viemServer";
+import { getChain, getRpcUrls } from "~~/utils/recovery/viemServer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 // Important: Node fetch has no default timeout; one bad/slow RPC can hang the whole endpoint.
-const RPC_TIMEOUT_MS = 12_000;
+// We keep this fairly low since we may execute many RPC calls per request.
+// If the first RPC is bad, we want to fail fast and try the next one.
+const RPC_TIMEOUT_MS = 3_000;
 
-function rpcTransport(rpcUrl: string) {
-  // viem http transport supports `timeout` but types can lag behind across versions.
-  return http(rpcUrl, { timeout: RPC_TIMEOUT_MS } as any);
+function rpcHostLabel(rpcUrl: string): string {
+  try {
+    return new URL(rpcUrl).host;
+  } catch {
+    // If it's not a valid URL (shouldn't happen), avoid logging secrets.
+    return "invalid-rpc-url";
+  }
+}
+
+function rpcTransportForChain(chainId: number) {
+  const rpcUrls = getRpcUrls(chainId);
+  const transports = rpcUrls.map((url, i) =>
+    // viem http transport supports `timeout` but types can lag behind across versions.
+    http(url, { timeout: RPC_TIMEOUT_MS, retryCount: 0, key: `rpc-${chainId}-${i}` } as any),
+  );
+  // Avoid fallback overhead when we only have one URL.
+  if (transports.length <= 1) return transports[0];
+  // Avoid `rank` here since this route can create many clients per request; ranking spawns timers.
+  return fallback(transports, { retryCount: 0 });
 }
 
 function mkLogPrefix(reqId: string) {
@@ -183,11 +201,16 @@ export async function POST(req: Request) {
         };
 
         const chainAssets = assets.filter(a => a.chainId === chainId);
-        const rpcUrl = getRpcUrl(chainId);
+        const rpcUrls = getRpcUrls(chainId);
+        const rpcUrl = rpcUrls[0] ?? "http://127.0.0.1:8545";
         const chain = getChain(chainId, rpcUrl);
         const delegate = getDelegateForChain(chainId);
-        const publicClient = createPublicClient({ chain, transport: rpcTransport(rpcUrl) });
-        console.info(chainLogp, "config", { rpcUrl, delegate: delegate.address });
+        const publicClient = createPublicClient({ chain, transport: rpcTransportForChain(chainId) });
+        console.info(chainLogp, "config", {
+          rpcHost: rpcHostLabel(rpcUrl),
+          rpcFallbackHosts: rpcUrls.slice(1).map(rpcHostLabel),
+          delegate: delegate.address,
+        });
 
         // Collect minimal info needed for the UI.
         const paymasterBalanceWei = await publicClient.getBalance({ address: paymaster }).catch(() => null);
@@ -673,9 +696,13 @@ export async function POST(req: Request) {
     // For ERC-20 payments, we'll return totalDueTokenUnits and keep totalDueWei=0.
     if (paymentKind === "erc20" && paymentTokenAddress) {
       try {
-        const paymentRpcUrl = getRpcUrl(paymentChainId);
+        const paymentRpcUrls = getRpcUrls(paymentChainId);
+        const paymentRpcUrl = paymentRpcUrls[0] ?? "http://127.0.0.1:8545";
         const paymentChain = getChain(paymentChainId, paymentRpcUrl);
-        const paymentClient = createPublicClient({ chain: paymentChain, transport: rpcTransport(paymentRpcUrl) });
+        const paymentClient = createPublicClient({
+          chain: paymentChain,
+          transport: rpcTransportForChain(paymentChainId),
+        });
         const erc20MetaAbi = parseAbi(["function decimals() view returns (uint8)"]);
         const d = (await paymentClient
           .readContract({ address: paymentTokenAddress, abi: erc20MetaAbi, functionName: "decimals" })
