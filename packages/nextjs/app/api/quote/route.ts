@@ -58,9 +58,24 @@ function safeErr(e: any) {
   return {
     name: typeof e?.name === "string" ? e.name : null,
     code: e?.code ?? e?.cause?.code ?? null,
+    status: e?.status ?? e?.cause?.status ?? null,
     shortMessage: typeof e?.shortMessage === "string" ? e.shortMessage : null,
     message: typeof e?.message === "string" ? e.message : String(e),
   };
+}
+
+function isUpstreamRpcError(e: any): boolean {
+  const name = e?.name ?? e?.cause?.name;
+  return (
+    name === "HttpRequestError" || name === "TimeoutError" || name === "RpcRequestError" || name === "SocketClosedError"
+  );
+}
+
+function isRateLimited(e: any): boolean {
+  const status = e?.status ?? e?.cause?.status;
+  if (status === 429) return true;
+  const msg = typeof e?.message === "string" ? e.message : "";
+  return msg.includes("Status: 429");
 }
 
 function decodeOptionalBoolReturn(
@@ -781,7 +796,17 @@ export async function POST(req: Request) {
       }),
     );
   } catch (e) {
-    console.error(logp, "fatal", safeErr(e));
+    const se = safeErr(e);
+    console.error(logp, "fatal", se);
+
+    // Don't leak upstream RPC URLs/request bodies to the client.
+    if (isUpstreamRpcError(e)) {
+      const msg = isRateLimited(e)
+        ? "RPC rate limited. Please retry in a few seconds."
+        : "Upstream RPC error. Please retry.";
+      return NextResponse.json({ error: msg }, { status: 503 });
+    }
+
     const message = e instanceof Error ? e.message : "Bad request";
     return NextResponse.json({ error: message }, { status: 400 });
   }

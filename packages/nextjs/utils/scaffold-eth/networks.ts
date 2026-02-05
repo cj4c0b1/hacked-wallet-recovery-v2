@@ -60,6 +60,17 @@ export const RPC_CHAIN_NAMES: Record<number, string> = {
   [chains.baseSepolia.id]: "base-sepolia",
   [chains.celo.id]: "celo-mainnet",
   [chains.celoSepolia.id]: "celo-sepolia",
+  [chains.bsc.id]: "bnb-mainnet",
+  [chains.worldchain.id]: "world-mainnet",
+  [chains.mantle.id]: "mantle-mainnet",
+  [chains.blast.id]: "blast-mainnet",
+  [chains.zora.id]: "zora-mainnet",
+  [chains.ronin.id]: "ronin-mainnet",
+  [chains.gnosis.id]: "gnosis-mainnet",
+  [chains.avalanche.id]: "avalanche-mainnet",
+  [chains.ink.id]: "ink-mainnet",
+  [chains.monad.id]: "monad-mainnet",
+  [chains.unichain.id]: "unichain-mainnet",
 };
 
 export const getAlchemyHttpUrl = (chainId: number) => {

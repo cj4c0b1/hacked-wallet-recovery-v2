@@ -1,7 +1,56 @@
 import { type Chain, defineChain } from "viem";
 import * as viemChains from "viem/chains";
-import scaffoldConfig from "~~/scaffold.config";
+import scaffoldConfig, { DEFAULT_ALCHEMY_API_KEY } from "~~/scaffold.config";
 import { getAlchemyHttpUrl } from "~~/utils/scaffold-eth/networks";
+
+/**
+ * Public RPC fallbacks for chains where `viem/chains` ships only a single
+ * rate-limited endpoint (e.g. thirdweb).
+ *
+ * Keep these **read-only** (no private mempool / relay RPCs).
+ */
+const PUBLIC_RPC_FALLBACKS: Record<number, string[]> = {
+  // BNB Smart Chain (BSC)
+  56: [
+    "https://bsc-dataseed.binance.org",
+    "https://bsc.publicnode.com",
+    "https://rpc.ankr.com/bsc",
+    "https://binance.llamarpc.com",
+  ],
+};
+
+let envRpcFallbacksCache: Record<number, string[]> | null = null;
+function getEnvRpcFallbacks(chainId: number): string[] {
+  if (!envRpcFallbacksCache) {
+    const raw = process.env.RPC_FALLBACK_URLS_JSON || process.env.RPC_URLS_BY_CHAIN_ID_JSON;
+    if (!raw) {
+      envRpcFallbacksCache = {};
+    } else {
+      try {
+        const parsed = JSON.parse(raw);
+        const out: Record<number, string[]> = {};
+        if (parsed && typeof parsed === "object") {
+          for (const [k, v] of Object.entries(parsed)) {
+            const id = Number(k);
+            if (!Number.isFinite(id)) continue;
+            if (Array.isArray(v)) out[id] = v.filter(x => typeof x === "string");
+            else if (typeof v === "string") out[id] = [v];
+          }
+        }
+        envRpcFallbacksCache = out;
+      } catch {
+        envRpcFallbacksCache = {};
+      }
+    }
+  }
+  return envRpcFallbacksCache[chainId] ?? [];
+}
+
+function hasValidAlchemyKey(): boolean {
+  // `scaffoldConfig.alchemyApiKey` always has *some* value due to defaults.
+  // Treat it as "valid" only if the user provided their own key.
+  return Boolean(scaffoldConfig.alchemyApiKey) && scaffoldConfig.alchemyApiKey !== DEFAULT_ALCHEMY_API_KEY;
+}
 
 // Execution-only RPCs (private mempool / relay RPCs).
 // Important: these MUST NOT be used for general reads across the app; only for the execution phase.
@@ -91,8 +140,27 @@ export function getRpcUrls(chainId: number): string[] {
   for (const u of configured?.rpcUrls?.default?.http ?? []) push(u);
   for (const u of configured?.rpcUrls?.public?.http ?? []) push(u);
 
-  // Alchemy (when available for this chainId).
-  push(getAlchemyHttpUrl(chainId));
+  // Alchemy (when available) should be the 2nd choice after the primary RPC.
+  if (hasValidAlchemyKey()) {
+    const alchemy = getAlchemyHttpUrl(chainId);
+    if (typeof alchemy === "string") {
+      const a = alchemy.trim();
+      if (a) {
+        const currentIndex = urls.indexOf(a);
+        const desiredIndex = urls.length > 0 ? 1 : 0;
+        if (currentIndex === -1) {
+          urls.splice(desiredIndex, 0, a);
+        } else if (currentIndex !== desiredIndex) {
+          urls.splice(currentIndex, 1);
+          urls.splice(desiredIndex, 0, a);
+        }
+      }
+    }
+  }
+
+  // Extra public fallbacks (env-configured + built-in list for some chains).
+  for (const u of getEnvRpcFallbacks(chainId)) push(u);
+  for (const u of PUBLIC_RPC_FALLBACKS[chainId] ?? []) push(u);
 
   // viem's built-in chain RPCs.
   const viemChain = viemChainsById.get(chainId);
