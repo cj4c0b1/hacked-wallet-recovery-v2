@@ -24,6 +24,7 @@ import { getChain, getExecuteRpcUrls, getRpcUrls } from "~~/utils/recovery/viemS
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 // Important: Node fetch has no default timeout; one bad/slow RPC can hang the whole endpoint.
 const RPC_TIMEOUT_MS = 15_000;
