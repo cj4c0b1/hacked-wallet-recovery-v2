@@ -1,80 +1,129 @@
-# 🏗 Scaffold-ETH 2
+# Hacked Wallet Recovery - V2
 
-<h4 align="center">
-  <a href="https://docs.scaffoldeth.io">Documentation</a> |
-  <a href="https://scaffoldeth.io">Website</a>
-</h4>
+Recover tokens and NFTs from a compromised wallet. This tool helps you move assets to a new safe wallet by batching transfers and executing onchain recovery using EIP-7702 authorizations. Your private key never leaves your browser.
 
-🧪 An open-source, up-to-date toolkit for building decentralized applications (dapps) on the Ethereum blockchain. It's designed to make it easier for developers to create and deploy smart contracts and build user interfaces that interact with those contracts.
+For a detailed explanation of how it works and why it's safe, see the [How it works](/how-it-works) page in the app.
 
-⚙️ Built using NextJS, RainbowKit, Foundry, Wagmi, Viem, and Typescript.
+## What it does
 
-- ✅ **Contract Hot Reload**: Your frontend auto-adapts to your smart contract as you edit it.
-- 🪝 **[Custom hooks](https://docs.scaffoldeth.io/hooks/)**: Collection of React hooks wrapper around [wagmi](https://wagmi.sh/) to simplify interactions with smart contracts with typescript autocompletion.
-- 🧱 [**Components**](https://docs.scaffoldeth.io/components/): Collection of common web3 components to quickly build your frontend.
-- 🔥 **Burner Wallet & Local Faucet**: Quickly test your application with a burner wallet and local faucet.
-- 🔐 **Integration with Wallet Providers**: Connect to different wallet providers and interact with the Ethereum network.
-
-![Debug Contracts tab](https://github.com/scaffold-eth/scaffold-eth-2/assets/55535804/b237af0c-5027-4849-a5c1-2e31495cccb1)
+1. **You paste the compromised wallet's private key** — We derive the public address and create signed recovery authorizations in your browser.
+2. **We look up the wallet's assets by address** — The server calls Zerion for a portfolio scan so you can see and select what to recover.
+3. **You choose a destination ("safe wallet")** — Where recovered assets will be sent.
+4. **We compute a quote** — Estimated gas cost for recovery transactions on the networks involved.
+5. **You pay the quoted gas fees from your safe wallet** — A normal onchain payment you approve in your wallet.
+6. **Our server broadcasts the recovery transactions** — After payment is confirmed, it submits the EIP-7702 recovery transactions on the relevant networks.
 
 ## Requirements
 
-Before you begin, you need to install the following tools:
+- [Node.js](https://nodejs.org/) >= v20.18.3
+- [Yarn](https://yarnpkg.com/) (v1 or v2+)
+- [Git](https://git-scm.com/)
 
-- [Node (>= v20.18.3)](https://nodejs.org/en/download/)
-- Yarn ([v1](https://classic.yarnpkg.com/en/docs/install/) or [v2+](https://yarnpkg.com/getting-started/install))
-- [Git](https://git-scm.com/downloads)
+## Quick start (run locally)
 
-## Quickstart
+### 1. Clone and install
 
-To get started with Scaffold-ETH 2, follow the steps below:
-
-1. Install dependencies if it was skipped in CLI:
-
-```
-cd my-dapp-example
+```bash
+git clone https://github.com/buidlguidl/hacked-wallet-recovery-v2.git
+cd hacked-wallet-recovery-v2
 yarn install
 ```
 
-2. Run a local network in the first terminal:
+### 2. Set up environment variables
 
-```
-yarn chain
-```
+Copy the example env file and fill in the values:
 
-This command starts a local Ethereum network using Foundry. The network runs on your local machine and can be used for testing and development. You can customize the network configuration in `packages/foundry/foundry.toml`.
-
-3. On a second terminal, deploy the test contract:
-
-```
-yarn deploy
+```bash
+cp packages/nextjs/.env.example packages/nextjs/.env.local
 ```
 
-This command deploys a test smart contract to the local network. The contract is located in `packages/foundry/contracts` and can be modified to suit your needs. The `yarn deploy` command uses the deploy script located in `packages/foundry/script` to deploy the contract to the network. You can also customize the deploy script.
+Edit `packages/nextjs/.env.local`. For local development, you need at least:
 
-4. On a third terminal, start your NextJS app:
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_ALCHEMY_API_KEY` | Yes | [Alchemy](https://dashboard.alchemyapi.io) API key for RPC access |
+| `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID` | Yes | [WalletConnect](https://cloud.walletconnect.com) project ID |
+| `ZERION_API_KEY` | Yes | [Zerion](https://zerion.io) API key for asset discovery (scan returns empty without it) |
+| `NEXT_PUBLIC_PAYMASTER_ADDRESS` | Yes | Address of the paymaster that sponsors recovery transactions |
+| `PAYMASTER_PRIVATE_KEY` | Yes | Private key for the paymaster (server-side only; used to broadcast recovery txns) |
 
-```
+The app ships with default Alchemy and WalletConnect keys for prototyping, but you should get your own for production. Without `ZERION_API_KEY`, asset scanning returns empty (you can still add assets manually for testing).
+
+**Note:** The quote and execute steps require `PAYMASTER_PRIVATE_KEY` and `NEXT_PUBLIC_PAYMASTER_ADDRESS`. For exploring the UI (scan, asset selection), Alchemy, WalletConnect, and Zerion are enough. For the full recovery flow or local Anvil testing, you need the paymaster keys.
+
+### 3. Start the app
+
+```bash
 yarn start
 ```
 
-Visit your app on: `http://localhost:3000`. You can interact with your smart contract using the `Debug Contracts` page. You can tweak the app config in `packages/nextjs/scaffold.config.ts`.
+Visit **http://localhost:3000**. The app targets mainnet chains by default; the `UniversalRecoveryDelegate` contract is already deployed on Ethereum, Base, Arbitrum, Optimism, and other supported networks (see `packages/nextjs/contracts/externalContracts.ts`).
 
-Run smart contract test with `yarn foundry:test`
+---
 
-- Edit your smart contracts in `packages/foundry/contracts`
-- Edit your frontend homepage at `packages/nextjs/app/page.tsx`. For guidance on [routing](https://nextjs.org/docs/app/building-your-application/routing/defining-routes) and configuring [pages/layouts](https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts) checkout the Next.js documentation.
-- Edit your deployment scripts in `packages/foundry/script`
+## Local chain development (Anvil)
 
+To run against a local Anvil chain for testing:
 
-## Documentation
+### 1. Start a local chain (terminal 1)
 
-Visit our [docs](https://docs.scaffoldeth.io) to learn how to start building with Scaffold-ETH 2.
+```bash
+yarn chain
+```
 
-To know more about its features, check out our [website](https://scaffoldeth.io).
+This starts Anvil on `http://127.0.0.1:8545` (chain ID 31337).
 
-## Contributing to Scaffold-ETH 2
+### 2. Deploy contracts (terminal 2)
 
-We welcome contributions to Scaffold-ETH 2!
+```bash
+yarn deploy
+```
 
-Please see [CONTRIBUTING.MD](https://github.com/scaffold-eth/scaffold-eth-2/blob/main/CONTRIBUTING.md) for more information and guidelines for contributing to Scaffold-ETH 2.
+The deploy script uses the deployer account as the paymaster on Anvil. For local dev, set `PAYMASTER_ADDRESS` in `packages/foundry/.env` to match the deployer (or leave it unset to use the deployer). The deployer on Anvil is the first prefunded account.
+
+### 3. Enable localhost in the app
+
+Uncomment chain 31337 in `packages/nextjs/contracts/externalContracts.ts` and set the deployed `UniversalRecoveryDelegate` address (printed by `yarn deploy` or in `packages/foundry/deployments/31337.json`).
+
+### 4. Configure the paymaster for local dev
+
+In `packages/nextjs/.env.local`, set:
+
+- `PAYMASTER_PRIVATE_KEY` — The deployer's private key (Anvil's default account #0: `0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2f80f`)
+- `NEXT_PUBLIC_PAYMASTER_ADDRESS` — The deployer's address (`0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` on Anvil)
+
+### 5. Start the app (terminal 3)
+
+```bash
+yarn start
+```
+
+Connect to the local network (31337) in the app and use the burner wallet or import a test account.
+
+---
+
+## Project structure
+
+- `packages/foundry/` — Solidity contracts (`UniversalRecoveryDelegate.sol`), tests, and deploy scripts
+- `packages/nextjs/` — Next.js frontend and API routes (`/api/scan`, `/api/quote`, `/api/execute`)
+- `packages/nextjs/app/how-it-works/` — How-it-works page
+- `packages/nextjs/app/recover/` — Recovery wizard and steps
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `yarn chain` | Start local Anvil chain |
+| `yarn deploy` | Deploy contracts to the configured network |
+| `yarn start` | Start the Next.js dev server |
+| `yarn foundry:test` | Run Solidity tests |
+
+## Security
+
+- Your private key is never sent to the server. It stays in browser memory and is cleared when you refresh or close the page.
+- The server only receives the public address (for asset lookup) and signed authorizations (cryptographic proofs), never the key itself.
+- You can [audit the code](https://github.com/buidlguidl/hacked-wallet-recovery-v2) and run it yourself if you're concerned about phishing.
+
+## License
+
+MIT
