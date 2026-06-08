@@ -15,6 +15,7 @@ import { type RecoveryAsset, buildAssetCalls, encodeExecuteBatch, getDelegateFor
 import { fallbackGasLimit, getMaxTxGas, padGasLimit } from "~~/utils/recovery/gasLimit";
 import { hashCalls, readIntentNonce, typedDataForRecoveryIntent } from "~~/utils/recovery/intent";
 import { jsonSafe } from "~~/utils/recovery/jsonSafe";
+import { mkLogger, mkReqId, safeErr } from "~~/utils/recovery/logger";
 import { rebalancePaymasterAcross } from "~~/utils/recovery/paymasterRebalance";
 import { canonicalAssetsHash } from "~~/utils/recovery/quotePricing";
 import { rateLimit } from "~~/utils/recovery/rateLimit";
@@ -74,6 +75,17 @@ function errCode(e: any) {
   return e?.code ?? e?.cause?.code ?? e?.errorCode ?? e?.cause?.errorCode ?? null;
 }
 
+// RPC URLs can embed provider API keys (e.g. Alchemy). Log only the host so the
+// key never lands in logs.
+function safeRpcHost(rpcUrl: string | null | undefined): string | null {
+  if (!rpcUrl) return null;
+  try {
+    return new URL(rpcUrl).host;
+  } catch {
+    return null;
+  }
+}
+
 function isRetryableRpcFailure(e: any): boolean {
   const code = errCode(e);
   if (code === -32090) return true;
@@ -100,11 +112,25 @@ function isRetryableRpcFailure(e: any): boolean {
 }
 
 export async function POST(req: Request) {
+  // Request-scoped logger. We log lifecycle + failures with enough context to debug
+  // a failed recovery in Vercel logs, but never secrets: no PAYMASTER_PRIVATE_KEY and
+  // no raw signature material (auth r/s, intent signature, quoteSig). The user's wallet
+  // private key never reaches this server — it stays in their browser.
+  const reqId = mkReqId();
+  const log = mkLogger("execute", reqId);
+  // Log a rejection and return it to the client with the reqId attached, so a user
+  // reporting a failure can hand us the id and we grep straight to their request.
+  const fail = (status: number, error: string, data?: unknown) => {
+    log.warn(`reject: ${error}`, data);
+    return NextResponse.json({ error, reqId }, { status });
+  };
   try {
-    // Note: debug logs are intentionally minimal here; the endpoint handles private key operations.
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
     const rl = rateLimit({ key: `execute:${ip}`, limit: 5, windowMs: 60_000 });
-    if (!rl.ok) return NextResponse.json({ error: "Rate limited" }, { status: 429 });
+    if (!rl.ok) {
+      log.warn("rate limited");
+      return NextResponse.json({ error: "Rate limited", reqId }, { status: 429 });
+    }
 
     const body = requireObject(await req.json().catch(() => ({})));
     const safeAddress = requireAddress(body.safeAddress, "safeAddress");
@@ -114,9 +140,21 @@ export async function POST(req: Request) {
 
     const assets = Array.isArray(body.assets) ? (body.assets as RecoveryAsset[]) : [];
 
+    log.info("request", {
+      safeAddress,
+      paymentChainId,
+      paymentTxHash,
+      assetsCount: assets.length,
+      assetChainIds: Array.from(new Set(assets.map(a => a.chainId))).sort((a, b) => a - b),
+      authChainIds: Object.keys(authorizationsByChainIdObj),
+    });
+
     // Load paymaster hot wallet key.
     const pk = process.env.PAYMASTER_PRIVATE_KEY;
-    if (!pk) return NextResponse.json({ error: "Missing PAYMASTER_PRIVATE_KEY on server." }, { status: 500 });
+    if (!pk) {
+      log.error("missing PAYMASTER_PRIVATE_KEY");
+      return NextResponse.json({ error: "Missing PAYMASTER_PRIVATE_KEY on server.", reqId }, { status: 500 });
+    }
     const paymasterAccount = privateKeyToAccount(requireHex(pk, "PAYMASTER_PRIVATE_KEY"));
     // Verify payment on the chain the user paid on (independent of execution chains).
     const paymentRpcUrls = getRpcUrls(paymentChainId);
@@ -135,29 +173,33 @@ export async function POST(req: Request) {
         break;
       } catch (e: any) {
         lastPaymentErr = e;
+        log.warn("payment verify rpc failed", { rpcHost: safeRpcHost(rpcUrl), err: safeErr(e) });
         if (!isRetryableRpcFailure(e)) break;
       }
     }
     if (!paymentTx || !paymentReceipt) {
       const msg = safeErrMessage(lastPaymentErr);
       const code = errCode(lastPaymentErr);
+      log.error("payment verification failed", { paymentChainId, paymentTxHash, err: safeErr(lastPaymentErr) });
       return NextResponse.json(
-        { error: `Payment verification failed (RPC). ${msg}`, errorCode: code, chainId: paymentChainId },
+        { error: `Payment verification failed (RPC). ${msg}`, errorCode: code, chainId: paymentChainId, reqId },
         { status: 502 },
       );
     }
     if (paymentReceipt.status !== "success") {
-      return NextResponse.json({ error: "Payment tx did not succeed." }, { status: 400 });
+      log.error("payment tx did not succeed", { paymentChainId, paymentTxHash, status: paymentReceipt.status });
+      return NextResponse.json({ error: "Payment tx did not succeed.", reqId }, { status: 400 });
     }
+    log.info("payment verified", { paymentChainId, paymentTxHash, rpcHost: safeRpcHost(paymentRpcUsed) });
 
     // Verify fee payment amount using the signed quote from /api/quote.
     const quotePayload = (body as any)?.quotePayload;
     const quoteSig = (body as any)?.quoteSig as Hex | undefined;
     if (!quotePayload || typeof quotePayload !== "object" || !quoteSig) {
-      return NextResponse.json(
-        { error: "Missing quotePayload/quoteSig. Refresh quote and try again." },
-        { status: 400 },
-      );
+      return fail(400, "Missing quotePayload/quoteSig. Refresh quote and try again.", {
+        hasQuotePayload: !!quotePayload,
+        hasQuoteSig: !!quoteSig,
+      });
     }
 
     const expectedAssetsHash = canonicalAssetsHash(assets);
@@ -177,19 +219,22 @@ export async function POST(req: Request) {
     const expiresAtMs = requireNumber((quotePayload as any).expiresAtMs, "quotePayload.expiresAtMs");
 
     if (payloadSafe.toLowerCase() !== safeAddress.toLowerCase()) {
-      return NextResponse.json({ error: "Quote safeAddress mismatch. Refresh quote and try again." }, { status: 400 });
+      return fail(400, "Quote safeAddress mismatch. Refresh quote and try again.", { payloadSafe, safeAddress });
     }
     if (payloadPaymentChainId !== paymentChainId) {
-      return NextResponse.json(
-        { error: "Quote paymentChainId mismatch. Refresh quote and try again." },
-        { status: 400 },
-      );
+      return fail(400, "Quote paymentChainId mismatch. Refresh quote and try again.", {
+        payloadPaymentChainId,
+        paymentChainId,
+      });
     }
     if (payloadAssetsHash.toLowerCase() !== expectedAssetsHash.toLowerCase()) {
-      return NextResponse.json({ error: "Quote assets mismatch. Refresh quote and try again." }, { status: 400 });
+      return fail(400, "Quote assets mismatch. Refresh quote and try again.", {
+        payloadAssetsHash,
+        expectedAssetsHash,
+      });
     }
     if (Date.now() > expiresAtMs) {
-      return NextResponse.json({ error: "Quote expired. Refresh quote and try again." }, { status: 400 });
+      return fail(400, "Quote expired. Refresh quote and try again.", { expiresAtMs, nowMs: Date.now() });
     }
 
     const quoteMessage =
@@ -208,31 +253,35 @@ export async function POST(req: Request) {
       signature: quoteSig,
     });
     if (!sigOk) {
-      return NextResponse.json({ error: "Invalid quote signature. Refresh quote and try again." }, { status: 400 });
+      return fail(400, "Invalid quote signature. Refresh quote and try again.");
     }
+    log.info("quote verified", { paymentKind: payloadPaymentKind, totalDue: payloadTotalDue.toString() });
 
     // Validate payment according to the quote (native or ERC-20).
     if (payloadPaymentKind === "native") {
       if (!paymentTx.to || paymentTx.to.toLowerCase() !== paymasterAccount.address.toLowerCase()) {
-        return NextResponse.json(
-          { error: "Native payment tx must be sent to the paymaster address." },
-          { status: 400 },
-        );
+        return fail(400, "Native payment tx must be sent to the paymaster address.", { paymentTxTo: paymentTx.to });
       }
       if ((paymentTx.value ?? 0n) < payloadTotalDue) {
-        return NextResponse.json({ error: "Payment tx value is below required fee." }, { status: 400 });
+        return fail(400, "Payment tx value is below required fee.", {
+          value: (paymentTx.value ?? 0n).toString(),
+          totalDue: payloadTotalDue.toString(),
+        });
       }
     } else if (payloadPaymentKind === "erc20") {
       const tokenAddress = requireAddress(payloadPaymentToken, "quotePayload.paymentTokenAddress");
       if (!paymentTx.to || paymentTx.to.toLowerCase() !== tokenAddress.toLowerCase()) {
-        return NextResponse.json({ error: "ERC20 payment tx must be sent to the token contract." }, { status: 400 });
+        return fail(400, "ERC20 payment tx must be sent to the token contract.", {
+          paymentTxTo: paymentTx.to,
+          tokenAddress,
+        });
       }
       const erc20TransferAbi = parseAbi(["event Transfer(address indexed from,address indexed to,uint256 value)"]);
       let paid = 0n;
-      for (const log of paymentReceipt.logs as any[]) {
-        if (!log?.address || String(log.address).toLowerCase() !== tokenAddress.toLowerCase()) continue;
+      for (const evLog of paymentReceipt.logs as any[]) {
+        if (!evLog?.address || String(evLog.address).toLowerCase() !== tokenAddress.toLowerCase()) continue;
         try {
-          const decoded = decodeEventLog({ abi: erc20TransferAbi, data: log.data, topics: log.topics });
+          const decoded = decodeEventLog({ abi: erc20TransferAbi, data: evLog.data, topics: evLog.topics });
           if (decoded.eventName !== "Transfer") continue;
           const to = (decoded.args as any)?.to as string | undefined;
           const value = (decoded.args as any)?.value as bigint | undefined;
@@ -244,17 +293,23 @@ export async function POST(req: Request) {
         }
       }
       if (paid < payloadTotalDue) {
-        return NextResponse.json({ error: "ERC20 transfer amount is below required fee." }, { status: 400 });
+        return fail(400, "ERC20 transfer amount is below required fee.", {
+          paid: paid.toString(),
+          totalDue: payloadTotalDue.toString(),
+        });
       }
     } else {
-      return NextResponse.json({ error: "Unsupported paymentKind in quote." }, { status: 400 });
+      return fail(400, "Unsupported paymentKind in quote.", { payloadPaymentKind });
     }
 
     const chainIds = Array.from(new Set(assets.map(a => a.chainId))).sort((a, b) => a - b);
     const results: Record<number, any> = {};
     let compromisedAddressGlobal: Address | null = null;
 
+    log.info("executing chains", { chainIds });
+
     for (const chainId of chainIds) {
+      const clog = log.child(`[chainId=${chainId}]`);
       const entryObj =
         (authorizationsByChainIdObj as any)[String(chainId)] ?? (authorizationsByChainIdObj as any)[chainId];
       // Backwards-compatible:
@@ -266,6 +321,7 @@ export async function POST(req: Request) {
           ? requireObject(entryObj)
           : null;
       if (!delegateAuthObj) {
+        clog.error("missing authorizations");
         results[chainId] = { ok: false, error: `Missing authorizations for chainId=${chainId}` };
         continue;
       }
@@ -326,6 +382,11 @@ export async function POST(req: Request) {
               throw new Error("Compromised address mismatch across chains.");
             }
             compromisedAddressGlobal = compromisedAddress;
+            clog.info("recovered compromised", {
+              compromisedAddress,
+              authNonce: delegateAuthorization.nonce,
+              rpcHost: safeRpcHost(rpcUrl),
+            });
 
             // Preflight: if the compromised account nonce changed since signing, the EIP-7702 authorization becomes invalid.
             // This commonly manifests as "invalid authorization" on some RPCs (Polygon can omit revert data).
@@ -415,12 +476,23 @@ export async function POST(req: Request) {
               maxPriorityFeePerGas: fees?.maxPriorityFeePerGas,
             } as any;
 
+            clog.info("broadcasting", {
+              compromisedAddress,
+              callsCount: calls.length,
+              gas: gas?.toString() ?? null,
+              maxFeePerGas: fees?.maxFeePerGas?.toString() ?? null,
+              maxPriorityFeePerGas: fees?.maxPriorityFeePerGas?.toString() ?? null,
+              rpcHost: safeRpcHost(rpcUrl),
+            });
+
             txHash = await walletClient.sendTransaction(txRequest);
             broadcastRpcUrl = rpcUrl;
             lastPrepareErr = null;
+            clog.info("broadcast ok", { txHash, rpcHost: safeRpcHost(rpcUrl) });
             break;
           } catch (e: any) {
             lastPrepareErr = e;
+            clog.warn("prepare/broadcast attempt failed", { rpcHost: safeRpcHost(rpcUrl), err: safeErr(e) });
             if (!isRetryableRpcFailure(e)) break;
           }
         }
@@ -443,10 +515,19 @@ export async function POST(req: Request) {
             break;
           } catch (e: any) {
             lastReceiptErr = e;
+            clog.warn("receipt fetch attempt failed", { txHash, rpcHost: safeRpcHost(rpcUrl), err: safeErr(e) });
             if (!isRetryableRpcFailure(e)) break;
           }
         }
         if (!receipt) throw lastReceiptErr ?? new Error("Failed to fetch transaction receipt.");
+
+        clog.info("receipt", {
+          txHash,
+          status: receipt.status,
+          blockNumber: receipt.blockNumber?.toString() ?? null,
+          gasUsed: receipt.gasUsed?.toString() ?? null,
+          rpcHost: safeRpcHost(receiptRpcUrl),
+        });
 
         let revert: any = null;
         if (receipt.status === "reverted") {
@@ -478,6 +559,17 @@ export async function POST(req: Request) {
             const std = decodeRevertData({ data: raw ?? null, abi: delegate.abi });
             revert = { data: raw ?? null, decoded, summary: std.summary };
           }
+          clog.error("execution reverted", {
+            txHash,
+            compromisedAddress,
+            revertSummary: revert?.summary ?? null,
+            revertDecoded: revert?.decoded ? jsonSafe(revert.decoded) : null,
+            revertData: revert?.data ?? null,
+          });
+        }
+
+        if (receipt.status === "success") {
+          clog.info("chain ok", { txHash, compromisedAddress });
         }
 
         results[chainId] = jsonSafe({
@@ -493,6 +585,7 @@ export async function POST(req: Request) {
       } catch (e: any) {
         const msg = safeErrMessage(e);
         const code = errCode(e);
+        clog.error("chain failed", { compromisedAddress: compromisedAddressGlobal, err: safeErr(e) });
         results[chainId] = { ok: false, chainId, error: msg, errorCode: code };
       }
     }
@@ -503,12 +596,25 @@ export async function POST(req: Request) {
       // Not awaiting since this doesn't need to complete to return the response to the user
       rebalancePaymasterAcross({ paymasterAccount, execute: true });
     } catch (e: any) {
-      console.warn("[hwr.execute] paymaster rebalance failed", e?.message ?? e);
+      log.warn("paymaster rebalance failed", safeErr(e));
     }
+
+    const overallOk = Object.values(results).every((r: any) => r?.ok);
+    log.info("done", {
+      overallOk,
+      compromisedAddress: compromisedAddressGlobal,
+      perChain: Object.fromEntries(
+        Object.entries(results).map(([cid, r]: [string, any]) => [
+          cid,
+          { ok: !!r?.ok, txHash: r?.txHash ?? null, error: r?.error ?? null },
+        ]),
+      ),
+    });
 
     return NextResponse.json(
       jsonSafe({
-        ok: Object.values(results).every((r: any) => r?.ok),
+        ok: overallOk,
+        reqId,
         compromisedAddress: compromisedAddressGlobal,
         safeAddress,
         payment: { chainId: paymentChainId, paymentTxHash, paymentReceipt, rpcUrl: paymentRpcUsed },
@@ -516,7 +622,8 @@ export async function POST(req: Request) {
       }),
     );
   } catch (e) {
+    log.error("fatal", safeErr(e));
     const message = e instanceof Error ? e.message : "Bad request";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: message, reqId }, { status: 400 });
   }
 }
