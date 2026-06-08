@@ -21,3 +21,6 @@ node_modules
 
 # cli
 dist
+
+# vercel (CLI link + pulled env/secrets live here)
+.vercel
