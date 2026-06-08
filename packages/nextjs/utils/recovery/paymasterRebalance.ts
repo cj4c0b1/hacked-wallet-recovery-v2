@@ -148,8 +148,17 @@ function parseTargetsWei(): { defaultTargetWei: bigint; perChainTargetWei: Recor
 
   const applyJson = (raw: string, kind: "wei" | "eth") => {
     let obj: any = null;
+    // Strip surrounding matching quotes: hosting dashboards (unlike dotenv) don't
+    // strip the quotes shown in .env.example, so the literal value can be `'{...}'`.
+    let text = raw.trim();
+    if (
+      text.length >= 2 &&
+      ((text.startsWith("'") && text.endsWith("'")) || (text.startsWith('"') && text.endsWith('"')))
+    ) {
+      text = text.slice(1, -1).trim();
+    }
     try {
-      obj = JSON.parse(raw);
+      obj = JSON.parse(text);
     } catch {
       throw new Error(`Invalid JSON in PAYMASTER_TARGETS_${kind.toUpperCase()}_JSON`);
     }
