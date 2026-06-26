@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { NextPage } from "next";
-import { getMetadata } from "~~/utils/scaffold-eth/getMetadata";
+import { getBaseUrl, getMetadata } from "~~/utils/scaffold-eth/getMetadata";
 
 export const metadata = getMetadata({
   title: "Custom calls",
@@ -9,8 +9,19 @@ export const metadata = getMetadata({
 });
 
 const CustomCallsPage: NextPage = () => {
+  const baseUrl = getBaseUrl();
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: baseUrl },
+      { "@type": "ListItem", position: 2, name: "Custom calls", item: `${baseUrl}/recover/custom-calls` },
+    ],
+  };
+
   return (
     <div className="flex items-center flex-col grow pt-10">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       <div className="w-full max-w-3xl px-5">
         <div className="bg-base-100 rounded-3xl p-5 sm:p-8 border border-base-300">
           <div className="flex items-center justify-between gap-3 flex-wrap">

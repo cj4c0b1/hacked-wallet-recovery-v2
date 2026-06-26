@@ -10,13 +10,43 @@ export const metadata = getMetadata({
 
 export default function Home() {
   const baseUrl = getBaseUrl();
+  const description =
+    "Recover tokens and NFTs from a compromised wallet by batching transfers and executing onchain recovery to a new safe wallet.";
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "Hacked Wallet Recovery",
-    url: baseUrl,
-    description:
-      "Recover tokens and NFTs from a compromised wallet by batching transfers and executing onchain recovery to a new safe wallet.",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${baseUrl}/#organization`,
+        name: "BuidlGuidl",
+        url: "https://buidlguidl.com",
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${baseUrl}/#website`,
+        name: "Hacked Wallet Recovery",
+        url: baseUrl,
+        description,
+        publisher: { "@id": `${baseUrl}/#organization` },
+      },
+      {
+        "@type": "WebApplication",
+        "@id": `${baseUrl}/#app`,
+        name: "Hacked Wallet Recovery",
+        url: baseUrl,
+        description,
+        applicationCategory: "SecurityApplication",
+        operatingSystem: "Web",
+        browserRequirements: "Requires JavaScript and a browser wallet.",
+        isAccessibleForFree: true,
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "USD",
+        },
+        publisher: { "@id": `${baseUrl}/#organization` },
+      },
+    ],
   };
 
   return (

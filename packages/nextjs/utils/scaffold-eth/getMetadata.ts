@@ -111,6 +111,13 @@ export const getMetadata = ({
           type: "image/png",
         },
       ],
+      apple: [
+        {
+          url: "/apple-touch-icon.png",
+          sizes: "180x180",
+          type: "image/png",
+        },
+      ],
     },
   };
 };
