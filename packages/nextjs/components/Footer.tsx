@@ -79,6 +79,12 @@ export const Footer = () => {
                 Support
               </a>
             </div>
+            <span>·</span>
+            <div className="text-center">
+              <a href="https://howwasmywallethacked.com" target="_blank" rel="noreferrer" className="link">
+                How Was My Wallet Hacked?
+              </a>
+            </div>
           </div>
         </ul>
       </div>
