@@ -130,7 +130,7 @@ export function IntroStep(props: { onNext: () => void }) {
 
   const lines = useMemo(() => {
     return [
-      "Sorry to hear that you have been hacked.",
+      "We're sad to hear that you have been hacked.",
       "This tool can help recover assets that are stuck in your wallet.",
     ];
   }, []);
