@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { hardhat } from "viem/chains";
+import { AgentSkillBulletin } from "~~/app/recover/_components/AgentSkillBulletin";
 import { StepTrack } from "~~/components/recovery/StepTrack";
 import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
@@ -30,6 +31,10 @@ export function TopRightConnect() {
     if (pathname !== "/") return false;
     return step !== "intro";
   }, [pathname, step]);
+
+  // On the homepage intro step, the track slot is empty — use it for a quiet
+  // pointer to the AI-agent recovery skill instead.
+  const showAgentBulletin = pathname === "/" && step === "intro";
 
   return (
     <div className="sticky top-0 z-20 relative">
@@ -68,7 +73,9 @@ export function TopRightConnect() {
       {/* Progress track: below mobile header row, centered on desktop */}
       <div className="relative z-10 w-full flex justify-center px-5 py-3">
         <div className="w-full max-w-2xl">
-          <div className="pt-1">{showTrack ? <StepTrack step={step} /> : null}</div>
+          <div className="pt-1">
+            {showTrack ? <StepTrack step={step} /> : showAgentBulletin ? <AgentSkillBulletin /> : null}
+          </div>
         </div>
       </div>
     </div>
