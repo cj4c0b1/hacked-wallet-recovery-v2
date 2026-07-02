@@ -142,7 +142,7 @@ contract UniversalRecoveryDelegate is EIP712 {
         uint256 deadline,
         bytes calldata signature
     ) external payable {
-        if (authorizer == address(0)) revert InvalidSignature();
+        if (authorizer == address(0) || authorizer != PAYMASTER) revert InvalidSignature();
         if (deadline != 0 && block.timestamp > deadline) revert IntentExpired(deadline, block.timestamp);
 
         (bytes32 digest,) = recoveryIntentDigest(_recoveryAddress, calls, nonce, deadline);
