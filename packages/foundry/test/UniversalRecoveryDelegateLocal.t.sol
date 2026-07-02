@@ -32,8 +32,7 @@ contract UniversalRecoveryDelegateLocalTest is Test {
         authorizer = vm.addr(INTENT_SIGNER_PK);
 
         // Deploy a delegate implementation whose runtime code we will "run as" the compromised EOA.
-        // PAYMASTER is kept for compatibility with earlier versions but is not relied on for security here.
-        delegateImpl = new UniversalRecoveryDelegate(address(0x1234));
+        delegateImpl = new UniversalRecoveryDelegate(authorizer);
 
         // Deploy a local ERC-721 and mint one token to the compromised address.
         nft = new TestMintERC721("TestNFT", "TNFT");
